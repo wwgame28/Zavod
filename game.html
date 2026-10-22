@@ -109,10 +109,28 @@ button:focus-visible{outline:2px solid var(--hazard);outline-offset:2px}
 .descend svg{width:16px;height:16px}
 @keyframes nudge{50%{box-shadow:0 0 0 6px rgba(255,207,63,.55), 0 6px 18px rgba(0,0,0,.6)}}
 .hint{
-  position:absolute; left:50%; top:10px; transform:translateX(-50%); width:max-content; max-width:calc(100% - 32px);
+  position:absolute; left:50%; bottom:12px; transform:translateX(-50%); width:max-content; max-width:calc(100% - 32px);
   padding:6px 10px; background:rgba(20,16,19,.88); border:1px solid var(--line); border-radius:3px;
   font-size:12px; color:var(--muted); pointer-events:none; text-align:center;
 }
+
+.map-btn{position:absolute; top:10px; right:max(10px, env(safe-area-inset-right, 0px)); z-index:4; background:rgba(39,32,36,.9)}
+.map-btn[aria-pressed="true"]{background:var(--hazard); border-color:var(--hazard); color:var(--ink)}
+.map{position:absolute; inset:0; width:100%; height:100%; z-index:3; image-rendering:pixelated; touch-action:none}
+.bossbar{position:absolute; top:12px; left:max(16px, env(safe-area-inset-left, 0px)); right:66px; display:grid; gap:4px; pointer-events:none; z-index:2}
+.bossbar span{font-family:var(--font-display); font-size:12px; letter-spacing:.12em; color:var(--hazard); text-shadow:2px 2px 0 var(--ink)}
+.bossbar .bar{height:9px}
+.inspect{
+  position:absolute; left:12px; right:12px; bottom:12px; z-index:2; pointer-events:none;
+  display:grid; grid-template-columns:36px minmax(0,1fr); gap:10px; align-items:start;
+  padding:10px 12px; background:rgba(28,23,26,.96); border:1px solid var(--line); border-radius:4px;
+  box-shadow:0 6px 18px rgba(0,0,0,.5);
+}
+.stage.on-exit .inspect{bottom:80px}
+.inspect canvas{width:32px; height:32px; image-rendering:pixelated}
+.inspect b{display:block; font-family:var(--font-display); font-weight:400; font-size:15px; letter-spacing:.03em; color:var(--hazard)}
+.inspect p{margin:3px 0 0; font-size:12.5px; line-height:1.4; color:var(--text)}
+.inspect small{display:block; margin-top:4px; font-size:12px; line-height:1.35; color:var(--muted)}
 
 /* ---------- Журнал ---------- */
 .log{
@@ -162,7 +180,7 @@ button:focus-visible{outline:2px solid var(--hazard);outline-offset:2px}
   -webkit-user-select:text; user-select:text;
 }
 @keyframes rise{from{opacity:0; transform:translateY(12px) scale(.98)}}
-.overlay.is-title{background:var(--bg); -webkit-backdrop-filter:none; backdrop-filter:none}
+.overlay.is-title,.overlay.solid{background:var(--bg); -webkit-backdrop-filter:none; backdrop-filter:none}
 .panel.is-title{background:transparent; border:0; padding:0; max-width:460px; gap:16px}
 .panel h2{margin:0; font-family:var(--font-display); font-weight:400; font-size:26px; letter-spacing:.04em; color:var(--hazard); text-wrap:balance}
 .panel p{margin:0; line-height:1.5; color:var(--text)}
@@ -219,6 +237,8 @@ button:focus-visible{outline:2px solid var(--hazard);outline-offset:2px}
 .offer b{display:block; font-weight:400; font-family:var(--font-display); font-size:14px; letter-spacing:.03em}
 .offer small{display:block; color:var(--muted); font-size:12px; line-height:1.35}
 .offer .btn{min-height:44px; font-size:13px; padding:0 12px}
+.offer.union{grid-template-columns:minmax(0,1fr) auto}
+.premia{font-family:var(--font-display); letter-spacing:.04em; color:var(--energy)!important}
 .toggles{display:grid; gap:8px}
 .toggle{display:flex; justify-content:space-between; align-items:center; min-height:48px; padding:0 14px; background:var(--surface-2); border:1px solid var(--line); border-radius:4px; text-align:left}
 .toggle i{font-style:normal; font-size:12px; padding:3px 8px; border-radius:2px; background:var(--ink); color:var(--muted); letter-spacing:.1em}
@@ -254,7 +274,13 @@ button:focus-visible{outline:2px solid var(--hazard);outline-offset:2px}
   <main class="stage" id="stage">
     <canvas id="cv" aria-label="Игровое поле"></canvas>
     <div class="banner" id="banner"><b id="bannerTitle">ЦЕХ 1</b><span id="bannerSub">Проходная</span></div>
-    <div class="hint" id="hint" hidden>Свайп или тап по клетке рядом — шаг. Тап по себе — ждать.</div>
+    <div class="bossbar" id="bossbar" hidden><span>ДИРЕКТОР</span><div class="bar"><i id="bossHp" style="width:100%"></i></div></div>
+    <button class="icon-btn map-btn" id="mapBtn" aria-label="Карта цеха" aria-pressed="false">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1 3l4-2 6 2 4-2v12l-4 2-6-2-4 2zM5 2.6v10.3l6 2V4.6z"/></svg>
+    </button>
+    <canvas class="map" id="mapCv" hidden></canvas>
+    <div class="inspect" id="inspect" hidden></div>
+    <div class="hint" id="hint" hidden>Свайп или тап по клетке рядом — шаг. Тап по себе — ждать. Удержи палец на клетке — узнать, что там.</div>
     <button class="descend" id="descendBtn" hidden>
       <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 4h3l3 4 3-4h3l-6 8z"/></svg>
       <span id="descendText">СПУСТИТЬСЯ</span>
@@ -299,9 +325,12 @@ const CONFIG = {
   CONVEYOR_CHANCE: 0.28,
   MOVE_MS: 85, TRAVEL_MS: 95,
   AUTOSAVE_TURNS: 10,
+  VENT_PERIOD: 4, VENT_DMG: 3,            // паровые клапаны: раз в N ходов, урон + цех/2
+  LONGPRESS_MS: 380,                      // удержание пальца — осмотр клетки
+  PREMIA_DIV: 100,                        // 1 премия профсоюза за каждые N очков
 };
 const W = CONFIG.MAP_W, H = CONFIG.MAP_H, TS = CONFIG.TILE;
-const RUN_KEY = 'zavod.run.v1', BEST_KEY = 'zavod.best.v1', SET_KEY = 'zavod.settings.v1';
+const RUN_KEY = 'zavod.run.v1', BEST_KEY = 'zavod.best.v1', SET_KEY = 'zavod.settings.v1', META_KEY = 'zavod.meta.v1', DAILY_KEY = 'zavod.daily.v1';
 
 const FLOOR_NAMES = ['Проходная','Склад сырья','Литейный цех','Сборочный конвейер','Котельная',
   'Гальванический цех','Испытательный стенд','Машинный зал','Диспетчерская','Кабинет Директора'];
@@ -414,14 +443,22 @@ const SPR_DATA = {
 };
 
 const MONS = {
-  rat:     { name:'Крыса-мутант', hp:4,  atk:2, def:0, spd:1,    ai:'melee',   xp:2, organic:true },
-  drone:   { name:'Ржавый дрон',  hp:5,  atk:2, def:0, spd:1.5,  ai:'erratic', xp:3 },
-  slime:   { name:'Мазутник',     hp:9,  atk:3, def:0, spd:0.75, ai:'melee',   xp:4, organic:true, split:true },
-  slimelet:{ name:'Мазутыш',      hp:3,  atk:2, def:0, spd:1,    ai:'melee',   xp:1, organic:true, sprite:'slime', small:true },
-  welder:  { name:'Сварщик',      hp:9,  atk:3, ratk:3, def:1, spd:1, ai:'ranged', range:4, reload:2, xp:5, shot:'искрой' },
-  sentry:  { name:'Турель',       hp:8,  atk:0, ratk:4, def:1, spd:1, ai:'turret', range:6, reload:2, xp:5, fixed:true, shot:'очередью' },
-  guard:   { name:'Охранник',     hp:18, atk:6, def:2, spd:0.5,  ai:'melee',   xp:9 },
-  boss:    { name:'Директор',     hp:110, atk:8, ratk:6, def:3, spd:0.8, ai:'boss', range:7, reload:3, xp:60, shot:'струёй пара' },
+  rat:     { name:'Крыса-мутант', hp:4,  atk:2, def:0, spd:1,    ai:'melee',   xp:2, organic:true,
+             desc:'Расплодились в подвалах. Слабые, но кусаются. ЭМИ на них не действует.' },
+  drone:   { name:'Ржавый дрон',  hp:5,  atk:2, def:0, spd:1.5,  ai:'erratic', xp:3,
+             desc:'Летает быстрее тебя и дёргается из стороны в сторону.' },
+  slime:   { name:'Мазутник',     hp:9,  atk:3, def:0, spd:0.75, ai:'melee',   xp:4, organic:true, split:true,
+             desc:'Ожившая лужа мазута. Медленный, а при гибели растекается на двух мазутышей.' },
+  slimelet:{ name:'Мазутыш',      hp:3,  atk:2, def:0, spd:1,    ai:'melee',   xp:1, organic:true, sprite:'slime', small:true,
+             desc:'Кусочек мазутника. Слабый, но цепкий.' },
+  welder:  { name:'Сварщик',      hp:9,  atk:3, ratk:3, def:1, spd:1, ai:'ranged', range:4, reload:2, xp:5, shot:'искрой',
+             desc:'Стреляет искрой на 4 клетки и два хода перезаряжается. Вплотную бьёт слабее.' },
+  sentry:  { name:'Турель',       hp:8,  atk:0, ratk:4, def:1, spd:1, ai:'turret', range:6, reload:2, xp:5, fixed:true, shot:'очередью',
+             desc:'Не двигается. Перед выстрелом мигает красным — уйди за угол.' },
+  guard:   { name:'Охранник',     hp:18, atk:6, def:2, spd:0.5,  ai:'melee',   xp:9,
+             desc:'Медленный и бронированный, но бьёт очень больно. Лучше гранатой или бочкой.' },
+  boss:    { name:'Директор',     hp:110, atk:8, ratk:6, def:3, spd:0.8, ai:'boss', range:7, reload:3, xp:60, shot:'струёй пара',
+             desc:'Управляет всем заводом. Стреляет паром, зовёт подмогу, на половине здоровья перегревается.' },
 };
 
 const WEAPONS = [
@@ -440,8 +477,20 @@ const ARMORS = [
   { name:'Экзоскелет', def:5, col:'#3fd6e0' },
 ];
 const ITEMS = {
-  medkit:{ name:'Аптечка' }, grenade:{ name:'Граната' }, emp:{ name:'ЭМИ-заряд' }, scheme:{ name:'Схема цеха' },
+  medkit:{ name:'Аптечка', desc:'Лечит 60% здоровья.' },
+  grenade:{ name:'Граната', desc:'Взрыв 3×3 по ближайшему видимому врагу. Тебя не задевает.' },
+  emp:{ name:'ЭМИ-заряд', desc:'Отключает всех видимых роботов на 4 хода. На крыс и мазут не действует.' },
+  scheme:{ name:'Схема цеха', desc:'Показывает весь цех и лифт.' },
 };
+// Постоянные улучшения за премии (действуют с начала обычной смены)
+const UPGRADES = [
+  { id:'hp',    name:'Усиленная спецовка', desc:'+4 к здоровью в начале смены.', max:3, cost:[5, 10, 15], apply:p=>{ p.maxHp+=4; p.hp+=4; } },
+  { id:'med',   name:'Аптечка в шкафчике', desc:'+1 аптечка в начале смены.', max:2, cost:[6, 12], apply:p=>{ p.inv.medkit++; } },
+  { id:'gren',  name:'Запас гранат',       desc:'+1 граната в начале смены.', max:2, cost:[6, 12], apply:p=>{ p.inv.grenade++; } },
+  { id:'stash', name:'Заначка',            desc:'+15 болтов в начале смены.', max:2, cost:[4, 8], apply:(p, g)=>{ g.bolts+=15; } },
+  { id:'tool',  name:'Свой инструмент',    desc:'Начинаешь с обрезком трубы (урон 3).', max:1, cost:[10], apply:p=>{ p.weapon=Math.max(p.weapon, 1); } },
+  { id:'skill', name:'Курсы повышения',    desc:'В начале смены сразу выбираешь навык.', max:1, cost:[20], apply:p=>{ p.pend+=1; } },
+];
 const PERKS = [
   { id:'tough',  name:'Закалка',          desc:'+8 к макс. здоровью и полное лечение.', max:9, apply:p=>{ p.maxHp+=8; p.hp=p.maxHp; } },
   { id:'str',    name:'Тяжёлая рука',     desc:'+2 к урону.', max:9, apply:p=>{ p.atkB+=2; } },
@@ -456,7 +505,7 @@ const PERKS = [
 ];
 
 // ============================== ТАЙЛЫ ==============================
-const T = { WALL:0, FLOOR:1, EXIT:2, CN:3, CE:4, CS:5, CW:6, GRATE:7, VEND:8 };
+const T = { WALL:0, FLOOR:1, EXIT:2, CN:3, CE:4, CS:5, CW:6, GRATE:7, VEND:8, VENT:9 };
 const CONV_DIR = { 3:[0,-1], 4:[1,0], 5:[0,1], 6:[-1,0] };
 const DIRS8 = [[0,-1],[1,0],[0,1],[-1,0],[1,-1],[1,1],[-1,1],[-1,-1]];
 
@@ -467,8 +516,12 @@ const Save = {
   del(k){ try { localStorage.removeItem(k); } catch {} },
 };
 const reduceMotionMQ = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-const settings = Object.assign({ sound:true, hum:true, calm: !!(reduceMotionMQ && reduceMotionMQ.matches), hinted:false }, Save.get(SET_KEY, {}));
+const settings = Object.assign({ sound:true, hum:true, vibro:true, calm: !!(reduceMotionMQ && reduceMotionMQ.matches), hinted:false }, Save.get(SET_KEY, {}));
 const saveSettings = () => Save.set(SET_KEY, settings);
+const meta = Object.assign({ premia:0, up:{} }, Save.get(META_KEY, {}));
+const saveMeta = () => Save.set(META_KEY, meta);
+const plural = (n, f) => { const a = Math.abs(n) % 100, b = a % 10; return a > 10 && a < 20 ? f[2] : b > 1 && b < 5 ? f[1] : b === 1 ? f[0] : f[2]; };
+const TURNS = ['ход', 'хода', 'ходов'];
 
 // ============================== ГРАФИКА: построение ==============================
 function mk(w, h, fn){ const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; fn(x); return c; }
@@ -504,6 +557,17 @@ function buildArt(){
     for (let i = 1; i < 16; i += 3) px(x, PAL.grateBar, i, 0, 1, 16);
     px(x, PAL.grateBar, 0, 0, 16, 1); px(x, PAL.seam, 0, 15, 16, 1); px(x, PAL.seam, 0, 8, 16, 1);
   });
+  TILES.vent = mk(TS, TS, x => {
+    x.drawImage(TILES.floor[0], 0, 0);
+    for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++){
+      const d = Math.hypot(xx - 7.5, yy - 7.5);
+      if (d < 4.6) px(x, (yy === 6 || yy === 8 || yy === 10) ? '#3b3337' : '#141113', xx, yy);
+      else if (d < 5.8) px(x, xx + yy < 15 ? '#8b8394' : '#4a4452', xx, yy);
+      else if (d < 6.6) px(x, '#1b171a', xx, yy);
+    }
+    for (const [a, b] of [[7, 1], [14, 7], [7, 14], [1, 7]]) px(x, PAL.y, a, b, 2, 1);
+  });
+  SPR.ventTile = TILES.vent;
   TILES.wallTop = mk(TS, TS, x => {
     px(x, PAL.wallTop, 0, 0, 16, 16);
     px(x, PAL.wallTopHi, 3, 4, 2, 1); px(x, PAL.wallTopHi, 10, 11, 3, 1); px(x, PAL.wallTopHi, 12, 3, 1, 1); px(x, PAL.wallTopHi, 5, 13, 1, 1);
@@ -584,7 +648,7 @@ let G = null, P = null;                 // G — сериализуемое со
 let vis = new Uint8Array(W * H);        // видимые сейчас клетки
 let distMap = new Int16Array(W * H);    // карта расстояний до игрока
 let state = 'title';
-let travel = null, lastInput = 0, perkChoices = [], newConfirm = false;
+let travel = null, lastInput = 0, perkChoices = [], newConfirm = '';
 const FX = { parts: [], floats: [], tracers: [], shake: 0, mag: 0, freeze: 0 };
 const cam = { x: 0, y: 0, init: false };
 let scale = 3, offX = 0, offY = 0, timeNow = 0, debug = false, fps = 60;
@@ -682,6 +746,19 @@ function genFloor(d){
   }
   t[idx(exitR.cx, exitR.cy)] = T.EXIT;
 
+  // Паровые клапаны (в котельной — больше)
+  const vents = [];
+  if (d >= 2){
+    for (const r of rooms){
+      if (r === start || rnd() >= 0.22 + (d === 5 ? 0.35 : 0)) continue;
+      const n = ri(2, 4);
+      for (let i = 0; i < n; i++){
+        const x = ri(r.x, r.x + r.w - 1), y = ri(r.y, r.y + r.h - 1), v = t[idx(x, y)];
+        if (v === T.FLOOR || v === T.GRATE){ t[idx(x, y)] = T.VENT; vents.push([x, y, ri(0, CONFIG.VENT_PERIOD - 1)]); }
+      }
+    }
+  }
+
   const isGround = (x, y) => { const v = t[idx(x, y)]; return v === T.FLOOR || v === T.GRATE; };
   const edgeSafe = (r, x, y) => {
     for (const [dx, dy] of [[0,-1],[1,0],[0,1],[-1,0]]){
@@ -747,7 +824,7 @@ function genFloor(d){
   const piles = ri(2, 4);
   for (let i = 0; i < piles; i++) putItem({ kind: 'bolts', n: ri(2, 5) + d }, 1);
 
-  return { t, start: { x: start.cx, y: start.cy }, ents, items, shop };
+  return { t, start: { x: start.cx, y: start.cy }, ents, items, shop, vents };
 }
 
 function genBossFloor(d){
@@ -759,6 +836,10 @@ function genBossFloor(d){
   for (const [qx, qy] of [[A.x + 4, A.y + 4], [A.x + A.w - 6, A.y + 4], [A.x + 4, A.y + A.h - 6], [A.x + A.w - 6, A.y + A.h - 6]])
     for (let yy = 0; yy < 2; yy++) for (let xx = 0; xx < 2; xx++) t[idx(qx + xx, qy + yy)] = T.WALL;
   for (let y = A.y + 2; y < A.y + A.h - 2; y++){ t[idx(A.x + 1, y)] = T.CN; t[idx(A.x + A.w - 2, y)] = T.CN; }
+  const vents = [];
+  for (const [vx, vy] of [[A.x + 6, A.y + 7], [A.x + 14, A.y + 7], [A.x + 10, A.y + 11], [A.x + 10, A.y + 1]]){
+    t[idx(vx, vy)] = T.VENT; vents.push([vx, vy, (vx + vy) % CONFIG.VENT_PERIOD]);
+  }
   const ents = [makeMon('boss', A.cx, A.y + 3, d)];
   for (const [bx, by] of [[A.x + 7, A.y + 2], [A.x + 13, A.y + 2], [A.x + 3, A.y + A.h - 2], [A.x + A.w - 4, A.y + A.h - 2], [A.x + 9, A.y + 9], [A.x + 11, A.y + 9]])
     ents.push(makeBarrel(bx, by));
@@ -766,7 +847,7 @@ function genBossFloor(d){
     { kind: 'medkit', x: S.x + 1, y: S.y + 1 }, { kind: 'medkit', x: S.x + S.w - 2, y: S.y + 1 },
     { kind: 'grenade', x: S.x + 1, y: S.y + S.h - 2 }, { kind: 'emp', x: S.x + S.w - 2, y: S.y + S.h - 2 },
   ];
-  return { t, start: { x: S.cx, y: S.cy }, ents, items, shop: null, bossExit: { x: A.cx, y: A.cy } };
+  return { t, start: { x: S.cx, y: S.cy }, ents, items, shop: null, vents, bossExit: { x: A.cx, y: A.cy } };
 }
 
 function makeShop(d){
@@ -898,29 +979,42 @@ function sfx(n){
     case 'alert': s.tone(880, 0.06, 'square', 0.04); s.tone(1175, 0.08, 'square', 0.04, 0, 0.06); break;
     case 'ui': s.tone(820, 0.03, 'square', 0.035); break;
     case 'win': [523, 659, 784, 1046, 1318].forEach((f, i) => s.tone(f, 0.25, 'triangle', 0.1, 0, i * 0.12)); break;
+    case 'steam': s.noise(0.45, 0.15, 2600, 0, 'highpass'); s.noise(0.3, 0.08, 500); break;
   }
 }
+function buzz(pattern){ if (!settings.vibro) return; try { if (navigator.vibrate) navigator.vibrate(pattern); } catch {} }
 
 // ============================== ЗАБЕГ ==============================
-function newRun(){
-  const seed = (Math.random() * 4294967296) >>> 0;
-  G = { v: 1, seed, rs: seed, depth: 0, turn: 0, bolts: 0, over: false, won: false, killer: '',
-    stats: { kills: 0, bolts: 0 }, log: [], map: null, ents: [], items: [], shop: null, bossExit: null, bossDead: false, nextId: 1,
+function dailyInfo(){
+  const d = new Date(), key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let h = 2166136261; for (const c of 'zavod' + key){ h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return { key, seed: h >>> 0, label: d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) };
+}
+function newRun(opts = {}){
+  const daily = opts.daily ? dailyInfo() : null;
+  const seed = daily ? daily.seed : (Math.random() * 4294967296) >>> 0;
+  G = { v: 1, seed, rs: seed, depth: 0, turn: 0, bolts: 0, over: false, won: false, killer: '', daily: daily ? daily.key : null,
+    stats: { kills: 0, bolts: 0 }, log: [], map: null, ents: [], items: [], shop: null, vents: [], bossExit: null, bossDead: false, nextId: 1,
     p: { x: 0, y: 0, rx: 0, ry: 0, face: 1, fl: 0, bx: 0, by: 0, hp: CONFIG.PLAYER.hp, maxHp: CONFIG.PLAYER.hp,
       atkB: CONFIG.PLAYER.atk, defB: 0, weapon: 0, armor: 0, xp: 0, lvl: 1, pend: 0,
       inv: { medkit: 1, grenade: 1, emp: 0, scheme: 0 }, perks: {}, crit: 0, dodge: 0, loot: 0, thorns: 0, boom: 0, vamp: 0, regen: 0 } };
   P = G.p;
+  if (!daily) for (const u of UPGRADES) for (let i = 0; i < (meta.up[u.id] || 0); i++) u.apply(P, G);
   FX.parts.length = 0; FX.floats.length = 0; FX.tracers.length = 0;
-  log('Смена началась. Спустись на 10 цехов и отключи Директора.', 'info');
+  log(daily ? `Смена дня, ${daily.label}: у всех сегодня одинаковые цеха.` : 'Смена началась. Спустись на 10 цехов и отключи Директора.', 'info');
   nextFloor();
   setState('play');
+  if (P.pend > 0) showPerks();
   if (!settings.hinted){ showHint(); }
 }
 function nextFloor(){
   G.depth++;
+  // у каждого цеха свой поток случайности: в «смене дня» цеха совпадают у всех игроков
+  const keep = G.rs; G.rs = (G.seed ^ Math.imul(G.depth, 0x9E3779B1)) | 0;
   const f = genFloor(G.depth);
+  G.rs = keep;
   G.map = { t: f.t, seen: new Array(W * H).fill(0) };
-  G.ents = f.ents; G.items = f.items; G.shop = f.shop; G.bossExit = f.bossExit || null; G.bossDead = false;
+  G.ents = f.ents; G.items = f.items; G.shop = f.shop; G.vents = f.vents || []; G.bossExit = f.bossExit || null; G.bossDead = false;
   P.x = P.rx = f.start.x; P.y = P.ry = f.start.y;
   cam.init = false; travel = null;
   computeFOV(); computeDist();
@@ -933,7 +1027,7 @@ function nextFloor(){
 function saveRun(){ if (G && !G.over) Save.set(RUN_KEY, G); }
 function loadRun(data){
   if (!data || !data.map || !data.p) return false;
-  G = data; P = G.p; vis = new Uint8Array(W * H); cam.init = false; travel = null;
+  G = data; P = G.p; G.vents = G.vents || []; vis = new Uint8Array(W * H); cam.init = false; travel = null;
   computeFOV(); computeDist(); renderLog(); updateHUD();
   return true;
 }
@@ -942,8 +1036,15 @@ function endRun(){
   const sc = score(), best = Save.get(BEST_KEY, { score: 0, depth: 0, wins: 0 });
   const rec = sc > best.score;
   Save.set(BEST_KEY, { score: Math.max(best.score, sc), depth: Math.max(best.depth, G.depth), wins: best.wins + (G.won ? 1 : 0) });
+  const earned = Math.floor(sc / CONFIG.PREMIA_DIV);
+  meta.premia += earned; saveMeta();
+  let dailyRec = false;
+  if (G.daily){
+    const db = Save.get(DAILY_KEY, { key: '', score: 0 });
+    if (db.key !== G.daily || sc > db.score){ dailyRec = true; Save.set(DAILY_KEY, { key: G.daily, score: sc }); }
+  }
   Save.del(RUN_KEY);
-  return rec;
+  return { rec, earned, dailyRec };
 }
 
 // ============================== ДЕЙСТВИЯ ИГРОКА ==============================
@@ -1066,7 +1167,7 @@ function hurt(e, dmg, crit = false){
 function damagePlayer(dmg, src){
   if (G.over) return;
   P.hp -= dmg; P.fl = 0.15;
-  float(P.x, P.y, `-${dmg}`, '#ff6b5b', true); sfx('hurt'); shake(5, 0.2);
+  float(P.x, P.y, `-${dmg}`, '#ff6b5b', true); sfx('hurt'); shake(5, 0.2); buzz(35);
   burst(P.x, P.y, 6, ['#a8382b', '#7a1f1a'], 50, 160);
   travel = null;
   if (P.hp <= 0){ P.hp = 0; die(src); }
@@ -1108,13 +1209,13 @@ function gainXp(n){
   P.xp += n;
   while (P.xp >= needXp(P.lvl)){
     P.xp -= needXp(P.lvl); P.lvl++; P.maxHp += CONFIG.PLAYER.hpPerLevel; P.hp += CONFIG.PLAYER.hpPerLevel; P.pend++;
-    float(P.x, P.y, 'РАЗРЯД ↑', PAL.c, true); sfx('level');
+    float(P.x, P.y, 'РАЗРЯД ↑', PAL.c, true); sfx('level'); buzz([15, 30, 15]);
     burst(P.x, P.y, 18, [PAL.c, '#fff', PAL.y], 70, 40);
   }
 }
 function die(src){
   G.over = true; G.killer = src; travel = null; state = 'dead';
-  sfx('die'); shake(8, 0.4); burst(P.x, P.y, 30, ['#a8382b', PAL.o, PAL.y, PAL.C], 90, 160, 2);
+  sfx('die'); shake(8, 0.4); buzz([80, 40, 160]); burst(P.x, P.y, 30, ['#a8382b', PAL.o, PAL.y, PAL.C], 90, 160, 2);
   log(`Смена окончена. Тебя остановил: ${src}.`, 'bad');
   updateHUD();
   const run = G;
@@ -1136,7 +1237,7 @@ function igniteBarrel(b, byPlayer){
   burst(b.x, b.y, 8, [PAL.o, PAL.y], 40, -60);
 }
 function explode(cx, cy, dmg, src){
-  sfx('boom'); shake(7, 0.3); hitstop(0.06);
+  sfx('boom'); shake(7, 0.3); hitstop(0.06); buzz(70);
   burst(cx, cy, 26, [PAL.o, PAL.y, PAL.r, '#6a6066', '#fff1a8'], 120, 60, 2);
   const chain = [];
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){
@@ -1172,6 +1273,7 @@ function worldTurn(){
     }
   }
   if (!G.over) applyConveyors();
+  if (!G.over) ventsTick();
   if (!G.over && P.regen && G.turn % 4 === 0 && P.hp < P.maxHp) heal(P.regen);
   G.ents = G.ents.filter(e => e.alive);
   computeFOV();
@@ -1265,6 +1367,20 @@ function applyConveyors(){
   }
 }
 
+const ventPhase = v => (G.turn + v[2]) % CONFIG.VENT_PERIOD;
+const ventIn = v => ((CONFIG.VENT_PERIOD - ventPhase(v)) % CONFIG.VENT_PERIOD) || CONFIG.VENT_PERIOD;   // ходов до выброса
+const ventDmg = () => CONFIG.VENT_DMG + Math.floor(G.depth / 2);
+function ventsTick(){
+  const dmg = ventDmg();
+  for (const v of G.vents){
+    if (ventPhase(v) !== 0) continue;
+    const [x, y] = v;
+    if (vis[idx(x, y)]){ burst(x, y, 16, ['#eae3d2', '#c9c2b0', '#8b8394'], 45, -50, 2); if (cheb({ x, y }, P) <= 5) sfx('steam'); }
+    if (P.x === x && P.y === y){ log(`Паровой клапан ошпарил тебя: −${dmg}.`, 'bad'); damagePlayer(dmg, 'Паровой клапан'); if (G.over) return; }
+    const e = entAt(x, y); if (e && isMon(e)) hurt(e, dmg);
+  }
+}
+
 // ============================== ПЕРЕХОД ПО ТАПУ ==============================
 function findPath(tx, ty, avoidBelts = true){
   const seen = G.map.seen;
@@ -1278,7 +1394,7 @@ function findPath(tx, ty, avoidBelts = true){
       const nx = x + dx, ny = y + dy; if (!inb(nx, ny)) continue;
       const j = idx(nx, ny); if (prev[j] >= 0) continue;
       if (!seen[j] || !passable(nx, ny) || !canStep(x, y, dx, dy)) continue;
-      if (avoidBelts && j !== goal && CONV_DIR[G.map.t[j]]) continue;
+      if (avoidBelts && j !== goal && (CONV_DIR[G.map.t[j]] || G.map.t[j] === T.VENT)) continue;
       const e = entAt(nx, ny); if (e && j !== goal) continue;
       prev[j] = i; q[n++] = j;
     }
@@ -1321,8 +1437,10 @@ function inputReady(){ const now = performance.now(); if (now - lastInput < CONF
 document.addEventListener('keydown', ev => {
   Snd.init();
   if (ev.code === 'Backquote'){ debug = !debug; return; }
+  if (state === 'map' && (ev.code === 'KeyM' || ev.code === 'Escape' || ev.code === 'Tab')){ ev.preventDefault(); toggleMap(false); return; }
   if (state === 'play'){
-    hideHint();
+    hideHint(); hideInspect();
+    if (ev.code === 'KeyM' || ev.code === 'Tab'){ ev.preventDefault(); toggleMap(true); return; }
     if (KEYS[ev.code]){ ev.preventDefault(); travel = null; if (inputReady()) tryMove(...KEYS[ev.code]); return; }
     if (ev.code === 'Space' || ev.code === 'Period' || ev.code === 'Numpad5'){
       ev.preventDefault();
@@ -1335,19 +1453,34 @@ document.addEventListener('keydown', ev => {
   } else if (ev.code === 'Escape'){
     if (state === 'shop' || state === 'pause'){ closePanel(); setState('play'); }
     else if (state === 'help') backFromHelp();
+    else if (state === 'union') showTitle();
   }
 });
 
 const stage = document.getElementById('stage'), cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 let ptr = null;
+function tileFromClient(cx, cy){
+  const r = cv.getBoundingClientRect();
+  const devX = (cx - r.left) * (cv.width / r.width), devY = (cy - r.top) * (cv.height / r.height);
+  return { x: Math.floor((devX - offX) / scale / TS), y: Math.floor((devY - offY) / scale / TS) };
+}
 cv.addEventListener('pointerdown', ev => {
   Snd.init();
   if (state !== 'play') return;
-  ptr = { x: ev.clientX, y: ev.clientY, id: ev.pointerId };
+  hideInspect();
+  if (ptr) clearTimeout(ptr.timer);
+  const p = { x: ev.clientX, y: ev.clientY, id: ev.pointerId, long: false, moved: false };
+  p.timer = setTimeout(() => {
+    if (ptr !== p || p.moved || state !== 'play') return;
+    p.long = true; const t = tileFromClient(p.x, p.y); inspectAt(t.x, t.y); buzz(12);
+  }, CONFIG.LONGPRESS_MS);
+  ptr = p;
   try { cv.setPointerCapture(ev.pointerId); } catch {}
 });
+cv.addEventListener('pointermove', ev => { if (ptr && Math.hypot(ev.clientX - ptr.x, ev.clientY - ptr.y) > 12) ptr.moved = true; });
 cv.addEventListener('pointerup', ev => {
-  if (!ptr || state !== 'play'){ ptr = null; return; }
+  if (ptr) clearTimeout(ptr.timer);
+  if (!ptr || state !== 'play' || ptr.long){ ptr = null; return; }
   const dx = ev.clientX - ptr.x, dy = ev.clientY - ptr.y; ptr = null;
   hideHint();
   if (Math.hypot(dx, dy) > 22){
@@ -1359,15 +1492,14 @@ cv.addEventListener('pointerup', ev => {
     travel = null; if (inputReady()) tryMove(mx, my);
     return;
   }
-  const r = cv.getBoundingClientRect();
-  const devX = (ev.clientX - r.left) * (cv.width / r.width), devY = (ev.clientY - r.top) * (cv.height / r.height);
-  const tx = Math.floor((devX - offX) / scale / TS), ty = Math.floor((devY - offY) / scale / TS);
+  const { x: tx, y: ty } = tileFromClient(ev.clientX, ev.clientY);
   if (!inb(tx, ty)) return;
   const dx2 = tx - P.x, dy2 = ty - P.y;
   if (dx2 === 0 && dy2 === 0){ if (tileAt(P.x, P.y) === T.EXIT) descendAction(); else if (inputReady()) waitTurn(); return; }
   if (Math.abs(dx2) <= 1 && Math.abs(dy2) <= 1){ travel = null; if (inputReady()) tryMove(dx2, dy2); return; }
   if (!G.map.seen[idx(tx, ty)]) return;
   const tgt = entAt(tx, ty);
+  if (tgt && vis[idx(tx, ty)]) inspectAt(tx, ty);
   if (tileAt(tx, ty) === T.VEND || (tgt && vis[idx(tx, ty)])){
     // идём к соседней клетке
     let best = null, bd = 1e9;
@@ -1377,7 +1509,7 @@ cv.addEventListener('pointerup', ev => {
   }
   if (passable(tx, ty)) startTravel(tx, ty);
 });
-cv.addEventListener('pointercancel', () => { ptr = null; });
+cv.addEventListener('pointercancel', () => { if (ptr) clearTimeout(ptr.timer); ptr = null; });
 document.addEventListener('pointerdown', () => Snd.init(), { passive: true });
 
 // ============================== UI ==============================
@@ -1402,6 +1534,12 @@ function updateHUD(){
   $('waitBtn').disabled = state !== 'play';
   const onExit = state === 'play' && !G.over && tileAt(p.x, p.y) === T.EXIT;
   $('descendBtn').hidden = !onExit;
+  stage.classList.toggle('on-exit', onExit);
+  const boss = G.ents.find(e => e.alive && e.kind === 'boss');
+  const showBoss = !!boss && boss.aware && (state === 'play' || state === 'perk' || state === 'dead');
+  $('bossbar').hidden = !showBoss;
+  if (showBoss) $('bossHp').style.width = `${Math.max(0, boss.hp) / boss.maxHp * 100}%`;
+  $('mapBtn').setAttribute('aria-pressed', state === 'map');
   if (onExit) $('descendText').textContent = G.depth >= CONFIG.MAX_DEPTH ? 'ПОДНЯТЬСЯ НАВЕРХ' : `СПУСТИТЬСЯ В ЦЕХ ${G.depth + 1}`;
 }
 function renderLog(){
@@ -1414,15 +1552,120 @@ function banner(title, sub){
 }
 function showHint(){ $('hint').hidden = false; setTimeout(hideHint, 9000); }
 function hideHint(){ if (!$('hint').hidden){ $('hint').hidden = true; settings.hinted = true; saveSettings(); } }
+// ---- Осмотр клетки (удержание пальца) ----
+const $insp = $('inspect');
+function hideInspect(){ if (!$insp.hidden) $insp.hidden = true; }
+function showInspect(spr, title, body, extra){
+  $insp.innerHTML = '';
+  $insp.appendChild(iconCanvas(spr));
+  const box = document.createElement('div');
+  const b = document.createElement('b'); b.textContent = title; box.appendChild(b);
+  if (body){ const p = document.createElement('p'); p.textContent = body; box.appendChild(p); }
+  if (extra){ const sm = document.createElement('small'); sm.textContent = extra; box.appendChild(sm); }
+  $insp.appendChild(box); $insp.hidden = false;
+}
+function inspectAt(tx, ty){
+  if (!inb(tx, ty) || !G.map.seen[idx(tx, ty)]) return;
+  const i = idx(tx, ty), t = G.map.t[i];
+  const e = vis[i] ? entAt(tx, ty) : null;
+  const it = G.items.find(o => o.x === tx && o.y === ty);
+  if (tx === P.x && ty === P.y){
+    const perks = PERKS.filter(pk => P.perks[pk.id]).map(pk => pk.name + (P.perks[pk.id] > 1 ? ' ×' + P.perks[pk.id] : '')).join(', ');
+    return showInspect(SPR.player, 'Ты, дежурный инженер', `${WEAPONS[P.weapon].name}: урон ${playerAtk()}. ${ARMORS[P.armor].name}: защита ${playerDef()}.`, perks ? `Навыки: ${perks}.` : 'Навыков пока нет — повышай разряд.');
+  }
+  if (e && e.kind === 'barrel')
+    return showInspect(e.fuse > 0 ? SPR.barrelLit : SPR.barrel, 'Бочка с топливом',
+      e.fuse > 0 ? `Горит! Взорвётся через ${e.fuse} ${plural(e.fuse, TURNS)}.` : 'Ударь — загорится и через 2 хода взорвётся (3×3, задевает и тебя).', '');
+  if (e){
+    const m = MONS[e.kind];
+    const stats = m.ai === 'turret' ? `выстрел ${e.ratk}` : `удар ${e.atk}` + (m.ratk ? ` · выстрел ${e.ratk}` : '');
+    const status = e.stun > 0 ? `отключён ещё на ${e.stun} ${plural(e.stun, TURNS)}` : e.charged && e.aware ? 'заряжен — выстрелит в следующий ход!' : e.aware ? 'заметил тебя' : 'тебя пока не видит';
+    return showInspect(SPR[m.sprite || e.kind], m.name, m.desc, `Здоровье ${e.hp}/${e.maxHp} · ${stats} · защита ${e.def}. Сейчас: ${status}.`);
+  }
+  if (it){
+    if (it.kind === 'bolts') return showInspect(SPR.bolts, `Болты: ${it.n}`, 'Валюта торговых автоматов.', '');
+    if (it.kind === 'weapon' || it.kind === 'armor'){
+      const isW = it.kind === 'weapon', nu = (isW ? WEAPONS : ARMORS)[it.tier], cur = isW ? WEAPONS[P.weapon] : ARMORS[P.armor];
+      const better = it.tier > (isW ? P.weapon : P.armor);
+      return showInspect(itemSprite(it), nu.name, isW ? `Урон ${nu.atk}${nu.stun ? ', иногда оглушает роботов' : ''}.` : `Защита +${nu.def}.`,
+        better ? 'Лучше твоего — подбери, наденется само.' : `Хуже твоего (${cur.name}) — сдашь в металлолом за болты.`);
+    }
+    return showInspect(SPR[it.kind], ITEMS[it.kind].name, ITEMS[it.kind].desc, '');
+  }
+  if (t === T.EXIT) return showInspect(TILES.exit[0], 'Грузовой лифт', G.depth >= CONFIG.MAX_DEPTH ? 'Ведёт наверх, на поверхность.' : `Ведёт в цех ${G.depth + 1}: ${FLOOR_NAMES[G.depth].toLowerCase()}.`, 'Встань на него и нажми «Спуститься».');
+  if (CONV_DIR[t]) return showInspect(TILES.conv[t][0], 'Конвейер', 'В конце каждого хода сдвигает всех, кто на нём стоит, на клетку по стрелке.', 'Против ленты не пройти — обойди сбоку.');
+  if (t === T.VENT){
+    const v = G.vents.find(o => o[0] === tx && o[1] === ty), n = v ? ventIn(v) : 0;
+    return showInspect(TILES.vent, 'Паровой клапан', `Раз в ${CONFIG.VENT_PERIOD} хода выбрасывает пар: ${ventDmg()} урона тому, кто стоит сверху. Перед выбросом шипит.`, v ? `Следующий выброс через ${n} ${plural(n, TURNS)}.` : '');
+  }
+  if (t === T.VEND) return showInspect(SPR.vend, 'Торговый автомат «Цехснаб»', 'Меняет болты на припасы. Шагни в него, чтобы открыть.', '');
+}
+
+// ---- Карта цеха ----
+const $map = $('mapCv');
+let mapGeo = null;
+function toggleMap(open){
+  if (open){
+    if (!canAct()) return;
+    state = 'map'; travel = null; hideInspect(); hideHint(); drawMap(); $map.hidden = false;
+  } else {
+    $map.hidden = true; if (state === 'map') state = 'play';
+  }
+  updateHUD();
+}
+function drawMap(){
+  const r = stage.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 3);
+  $map.width = Math.max(1, Math.round(r.width * dpr)); $map.height = Math.max(1, Math.round(r.height * dpr));
+  const x = $map.getContext('2d'), mw = $map.width, mh = $map.height;
+  const top = 64 * dpr, bottom = 40 * dpr, side = 12 * dpr;
+  const seen = G.map.seen;
+  // кадрируем по разведанной части, чтобы в начале цеха карта не была крошечной
+  let minX = W, minY = H, maxX = 0, maxY = 0;
+  for (let y = 0; y < H; y++) for (let xx = 0; xx < W; xx++) if (seen[idx(xx, y)]){ minX = Math.min(minX, xx); maxX = Math.max(maxX, xx); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+  minX = Math.max(0, minX - 2); minY = Math.max(0, minY - 2); maxX = Math.min(W - 1, maxX + 2); maxY = Math.min(H - 1, maxY + 2);
+  const bw = maxX - minX + 1, bh = maxY - minY + 1;
+  const cell = Math.max(2, Math.min(Math.round(22 * dpr), Math.floor(Math.min((mw - side * 2) / bw, (mh - top - bottom) / bh))));
+  const ox = Math.round((mw - cell * bw) / 2) - minX * cell, oy = Math.round(top + (mh - top - bottom - cell * bh) / 2) - minY * cell;
+  mapGeo = { ox, oy, cell, dpr };
+  x.fillStyle = PAL.void; x.fillRect(0, 0, mw, mh);
+  const col = { [T.WALL]: '#4a302b', [T.FLOOR]: '#4d454a', [T.GRATE]: '#3f383c', [T.EXIT]: PAL.y, [T.VEND]: PAL.c, [T.VENT]: '#9a93a0' };
+  for (let y = 0; y < H; y++) for (let xx = 0; xx < W; xx++){
+    const i = idx(xx, y); if (!seen[i]) continue;
+    const t = G.map.t[i]; x.fillStyle = col[t] || '#8a6a20';
+    x.fillRect(ox + xx * cell, oy + y * cell, cell, cell);
+    if (!vis[i] && t !== T.EXIT){ x.fillStyle = 'rgba(10,8,10,.35)'; x.fillRect(ox + xx * cell, oy + y * cell, cell, cell); }
+  }
+  const dot = (tx, ty, c, f) => { const s2 = Math.max(1, Math.round(cell * f)), o = Math.floor((cell - s2) / 2); x.fillStyle = c; x.fillRect(ox + tx * cell + o, oy + ty * cell + o, s2, s2); };
+  for (const it of G.items) if (seen[idx(it.x, it.y)]) dot(it.x, it.y, it.kind === 'bolts' ? PAL.y : PAL.w, 0.45);
+  for (const e of G.ents) if (e.alive && vis[idx(e.x, e.y)]) dot(e.x, e.y, e.kind === 'barrel' ? PAL.o : '#ff4d3d', 0.8);
+  x.fillStyle = PAL.k; x.fillRect(ox + P.x * cell - dpr, oy + P.y * cell - dpr, cell + 2 * dpr, cell + 2 * dpr);
+  dot(P.x, P.y, PAL.o, 1);
+  x.textBaseline = 'middle'; x.textAlign = 'left';
+  x.font = `${Math.round(15 * dpr)}px 'Russo One', Impact, sans-serif`; x.fillStyle = PAL.y;
+  x.fillText(`ЦЕХ ${G.depth} · ${FLOOR_NAMES[G.depth - 1].toUpperCase()}`, side + 4 * dpr, 32 * dpr);
+  x.font = `${Math.round(12 * dpr)}px 'PT Mono', monospace`; x.fillStyle = '#a3968f'; x.textAlign = 'center';
+  x.fillText('Тап по клетке — идти туда · тап мимо — закрыть', mw / 2, mh - 20 * dpr);
+}
+$map.addEventListener('pointerup', ev => {
+  if (state !== 'map' || !mapGeo) return;
+  const r = $map.getBoundingClientRect();
+  const tx = Math.floor(((ev.clientX - r.left) * mapGeo.dpr - mapGeo.ox) / mapGeo.cell);
+  const ty = Math.floor(((ev.clientY - r.top) * mapGeo.dpr - mapGeo.oy) / mapGeo.cell);
+  toggleMap(false);
+  if (inb(tx, ty) && G.map.seen[idx(tx, ty)] && passable(tx, ty) && !(tx === P.x && ty === P.y)) startTravel(tx, ty);
+});
+
 function panel(html, cls = ''){ $overlay.hidden = false; $overlay.className = 'overlay ' + cls; $panel.className = 'panel ' + cls; $panel.innerHTML = html; $panel.scrollTop = 0; }
 function closePanel(){ $overlay.hidden = true; $panel.innerHTML = ''; }
 function iconCanvas(spr, size = 16){ const c = document.createElement('canvas'); c.width = size; c.height = size; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(spr, 0, 0, size, size); return c; }
 function mountIcons(){ $panel.querySelectorAll('canvas[data-spr]').forEach(c => { const x = c.getContext('2d'); x.imageSmoothingEnabled = false; const k = c.dataset.spr; const s = k.startsWith('weapon') ? SPR.weaponT[+k.slice(6)] : k.startsWith('armor') ? SPR.armorT[+k.slice(5)] : SPR[k]; if (s) x.drawImage(s, 0, 0); }); }
 
 function showTitle(){
-  state = 'title'; travel = null; newConfirm = false;
+  state = 'title'; travel = null; newConfirm = '';
   const best = Save.get(BEST_KEY, { score: 0, depth: 0, wins: 0 });
   const has = !!Save.get(RUN_KEY, null);
+  const today = dailyInfo(), db = Save.get(DAILY_KEY, { key: '', score: 0 });
+  const dailyLine = db.key === today.key ? `Смена дня: лучший результат ${db.score}.` : 'Смену дня сегодня ещё не проходил.';
   panel(`
     <div class="tape" aria-hidden="true"></div>
     <p class="eyebrow">Пропуск № 0417 · дежурный инженер</p>
@@ -1432,10 +1675,14 @@ function showTitle(){
     <p class="lede">Завод закрыли тридцать лет назад, но по ночам станки снова гудят. Спустись на десять цехов вниз и отключи Директора — машину, которая всем здесь управляет.</p>
     <div class="btns">
       ${has ? '<button class="btn primary" data-act="continue">Продолжить смену</button>' : ''}
-      <button class="btn ${has ? '' : 'primary'}" data-act="new" id="newBtn">Новая смена</button>
+      <button class="btn ${has ? '' : 'primary'}" data-act="new">Новая смена</button>
+      <div class="row">
+        <button class="btn" data-act="daily">Смена дня</button>
+        <button class="btn" data-act="union">Профсоюз · ${meta.premia}</button>
+      </div>
       <button class="btn ghost" data-act="help">Как играть</button>
     </div>
-    <p class="record">${best.score ? `Рекорд: ${best.score} очков · дошёл до цеха ${best.depth}${best.wins ? ` · побед: ${best.wins}` : ''}` : 'Рекорда пока нет. Первая смена — самая длинная.'}</p>
+    <p class="record">${best.score ? `Рекорд: ${best.score} очков · дошёл до цеха ${best.depth}${best.wins ? ` · побед: ${best.wins}` : ''}` : 'Рекорда пока нет. Первая смена — самая длинная.'}<br>${dailyLine}</p>
     <div class="tape" aria-hidden="true"></div>`, 'is-title');
 }
 let helpFrom = 'title';
@@ -1451,12 +1698,15 @@ function showHelp(from){
       ${row('sentry', 'Турели и сварщики стреляют издалека. Если турель <b>мигает красным</b> — она выстрелит в следующий ход.')}
       ${row('barrel', 'Ударь бочку — загорится и через 2 хода взорвётся (3×3). Отойди и заманивай врагов.')}
       ${row('weapon0', 'Конвейеры тащат всех, кто на них стоит. Найденное оружие и защита надеваются сами, если лучше твоих.')}
+      ${row('ventTile', '<b>Паровые клапаны</b> раз в 4 хода выбрасывают пар. Перед выбросом клапан шипит — сойди с него или заведи туда врага.')}
       ${row('vend', 'Торговый автомат меняет <b>болты</b> на припасы. Подойди к нему вплотную.')}
+      ${row('scheme', '<b>Удержи палец</b> на клетке — узнаешь, что там. Кнопка карты в углу показывает весь разведанный цех.')}
       ${row('bolts', 'Опыт повышает <b>разряд</b>: выбираешь один из трёх навыков.')}
       ${row('boss', 'На 10-м уровне ждёт <b>Директор</b>. Отключи его и поднимись наверх.')}
+      ${row('can', 'После смены профсоюз начисляет <b>премии</b>. На них покупаются улучшения для следующих смен.')}
     </dl>
-    <p class="keys">Клавиатура: стрелки / WASD, диагонали Q E Z C · пробел — ждать · 1–4 — предметы · Enter — лифт · Esc — пауза.</p>
-    <button class="btn primary" data-act="helpBack">Понятно</button>`);
+    <p class="keys">Клавиатура: стрелки / WASD, диагонали Q E Z C · пробел — ждать · 1–4 — предметы · Enter — лифт · M — карта · Esc — пауза.</p>
+    <button class="btn primary" data-act="helpBack">Понятно</button>`, from === 'title' ? 'solid' : '');
   mountIcons();
 }
 function backFromHelp(){ if (helpFrom === 'pause') showPause(); else showTitle(); }
@@ -1465,11 +1715,12 @@ function showPause(){
   state = 'pause'; travel = null; saveRun();
   const tg = (key, label) => `<button class="toggle" data-act="toggle" data-key="${key}" aria-pressed="${!!settings[key]}"><span>${label}</span><i>${settings[key] ? 'ВКЛ' : 'ВЫКЛ'}</i></button>`;
   panel(`
-    <p class="eyebrow">Цех ${G.depth} · ход ${G.turn}</p>
+    <p class="eyebrow">${G.daily ? 'Смена дня · ' : ''}Цех ${G.depth} · ход ${G.turn}</p>
     <h2>Перерыв</h2>
     <div class="toggles">
       ${tg('sound', 'Звуки')}
       ${tg('hum', 'Гул цеха')}
+      ${tg('vibro', 'Вибрация')}
       ${tg('calm', 'Меньше тряски и частиц')}
     </div>
     <button class="btn primary" data-act="resume">Продолжить</button>
@@ -1487,10 +1738,11 @@ function showPerks(){
   state = 'perk'; perkChoices = pickPerks();
   if (!perkChoices.length){ P.pend = 0; setState('play'); return; }
   sfx('level');
+  const fresh = G.turn === 0;
   panel(`
-    <p class="eyebrow">Повышение квалификации</p>
-    <h2>Разряд ${P.lvl - P.pend + 1}</h2>
-    <p class="muted">Здоровье +${CONFIG.PLAYER.hpPerLevel}. Выбери навык:</p>
+    <p class="eyebrow">${fresh ? 'Курсы повышения квалификации' : 'Повышение квалификации'}</p>
+    <h2>${fresh ? 'Навык на старте' : `Разряд ${P.lvl - P.pend + 1}`}</h2>
+    <p class="muted">${fresh ? '' : `Здоровье +${CONFIG.PLAYER.hpPerLevel}. `}Выбери навык:</p>
     <div class="perks">
       ${perkChoices.map((pk, i) => `<button class="perk" data-act="perk" data-i="${i}"><b>${pk.name}</b><span>${pk.desc}</span><em>${P.perks[pk.id] || 0}/${pk.max}</em></button>`).join('')}
     </div>`);
@@ -1509,7 +1761,7 @@ function showShop(){
     <button class="btn ghost" data-act="resume">Отойти от автомата</button>`);
   mountIcons();
 }
-function showOver(rec){
+function showOver(res){
   state = 'over';
   const sc = score();
   panel(`
@@ -1525,17 +1777,45 @@ function showOver(rec){
       <dt>Ходов</dt><dd>${G.turn}</dd>
       <dt>Очки</dt><dd class="total">${sc}</dd>
     </dl>
-    ${rec ? '<p class="newrec">Новый рекорд!</p>' : ''}
+    <p class="premia">Премия профсоюза: +${res.earned} · на счету ${meta.premia}</p>
+    ${res.rec ? '<p class="newrec">Новый рекорд!</p>' : ''}
+    ${G.daily && res.dailyRec ? '<p class="newrec">Лучший результат смены дня!</p>' : ''}
     <button class="btn primary" data-act="new">Новая смена</button>
-    <button class="btn ghost" data-act="menu">В меню</button>`);
+    <div class="row">
+      ${meta.premia > 0 ? '<button class="btn" data-act="union">Профсоюз</button>' : ''}
+      <button class="btn ghost" data-act="menu">В меню</button>
+    </div>`);
+}
+function showUnion(){
+  state = 'union';
+  panel(`
+    <p class="eyebrow">Профсоюзный комитет</p>
+    <h2>Премий: ${meta.premia}</h2>
+    <p class="muted">После каждой смены начисляется 1 премия за каждые ${CONFIG.PREMIA_DIV} очков. Улучшения действуют с начала обычной смены, в смене дня — нет.</p>
+    <div class="shop">
+      ${UPGRADES.map((u, i) => {
+        const lv = meta.up[u.id] || 0, maxed = lv >= u.max, cost = u.cost[lv], ok = !maxed && meta.premia >= cost;
+        return `<div class="offer union"><div><b>${u.name}</b><small>${u.desc} Уровень ${lv}/${u.max}.</small></div>
+          <button class="btn ${ok ? 'primary' : ''}" data-act="upgrade" data-i="${i}" ${ok ? '' : 'disabled'} aria-label="${maxed ? 'Куплено полностью' : `Купить за ${cost} премий`}">${maxed ? 'ЕСТЬ' : cost}</button></div>`;
+      }).join('')}
+    </div>
+    <button class="btn ghost" data-act="back">Назад</button>`, 'solid');
 }
 $panel.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act]'); if (!b) return;
   Snd.init(); sfx('ui');
   switch (b.dataset.act){
-    case 'new':
-      if (state === 'title' && Save.get(RUN_KEY, null) && !newConfirm){ newConfirm = true; b.textContent = 'Точно? Текущая смена пропадёт'; b.classList.add('warn'); return; }
-      closePanel(); newRun(); break;
+    case 'new': case 'daily':
+      if (state === 'title' && Save.get(RUN_KEY, null) && newConfirm !== b.dataset.act){ newConfirm = b.dataset.act; b.textContent = 'Точно? Текущая смена пропадёт'; b.classList.add('warn'); return; }
+      closePanel(); newRun({ daily: b.dataset.act === 'daily' }); break;
+    case 'union': showUnion(); break;
+    case 'back': showTitle(); break;
+    case 'upgrade': {
+      const u = UPGRADES[+b.dataset.i]; if (!u) return;
+      const lv = meta.up[u.id] || 0, cost = u.cost[lv];
+      if (lv >= u.max || meta.premia < cost) return;
+      meta.premia -= cost; meta.up[u.id] = lv + 1; saveMeta(); sfx('level'); showUnion(); break;
+    }
     case 'continue': { const d = Save.get(RUN_KEY, null); closePanel(); if (loadRun(d)){ setState('play'); log('Смена продолжается.', 'info'); } else newRun(); break; }
     case 'help': showHelp('title'); break;
     case 'helpPause': showHelp('pause'); break;
@@ -1563,7 +1843,8 @@ $panel.addEventListener('click', ev => {
     }
   }
 });
-$('pauseBtn').addEventListener('click', () => { Snd.init(); if (state === 'play') showPause(); });
+$('pauseBtn').addEventListener('click', () => { Snd.init(); if (state === 'map') toggleMap(false); if (state === 'play') showPause(); });
+$('mapBtn').addEventListener('click', () => { Snd.init(); sfx('ui'); toggleMap(state !== 'map'); });
 $('waitBtn').addEventListener('click', () => { Snd.init(); if (inputReady()) waitTurn(); });
 $('descendBtn').addEventListener('click', () => { Snd.init(); descendAction(); });
 document.querySelectorAll('.act[data-item]').forEach(b => b.addEventListener('click', () => { Snd.init(); useItem(b.dataset.item); }));
@@ -1585,6 +1866,7 @@ function tileImage(x, y, t){
       const h = hash(x, y) % 10; return TILES.wallFace[h < 7 ? 0 : h < 9 ? 1 : 2];
     }
     case T.GRATE: return TILES.grate;
+    case T.VENT: return TILES.vent;
     case T.EXIT: return TILES.exit[(timeNow * 2.5 | 0) % 2];
     case T.FLOOR: case T.VEND: { const h = hash(x, y) % 12; return TILES.floor[h < 7 ? 0 : h < 9 ? 1 : h < 11 ? 2 : 3]; }
     default: return TILES.conv[t][(timeNow * 8 | 0) % 4];
@@ -1601,7 +1883,7 @@ function render(){
   const cw = cv.width, ch = cv.height;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = PAL.void; ctx.fillRect(0, 0, cw, ch);
-  if (!G || !G.map || state === 'title' || state === 'help' && helpFrom === 'title') return;
+  if (!G || !G.map || state === 'title' || state === 'union' || (state === 'help' && helpFrom === 'title')) return;
   const k = scale;
   let sx = 0, sy = 0;
   if (FX.shake > 0){ sx = (Math.random() * 2 - 1) * FX.mag; sy = (Math.random() * 2 - 1) * FX.mag; }
@@ -1617,6 +1899,12 @@ function render(){
     ctx.drawImage(tileImage(x, y, t), X, Y);
     if (t !== T.WALL && y > 0 && tmap[idx(x, y - 1)] === T.WALL){ ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(X, Y, TS, 3); }
     if (t === T.VEND) ctx.drawImage(SPR.vend, X, Y);
+  }
+  // клапаны: шипение перед выбросом
+  for (const v of G.vents){
+    if (!vis[idx(v[0], v[1])] || ventPhase(v) !== CONFIG.VENT_PERIOD - 1) continue;
+    ctx.fillStyle = `rgba(234,227,210,${0.12 + 0.08 * Math.sin(timeNow * 12)})`; ctx.fillRect(v[0] * TS, v[1] * TS, TS, TS);
+    if (Math.random() < 0.35) FX.parts.push({ x: v[0] * TS + 4 + Math.random() * 8, y: v[1] * TS + 8, vx: (Math.random() - 0.5) * 8, vy: -18 - Math.random() * 14, g: -6, life: 0.5, t: 0, col: Math.random() < 0.5 ? '#eae3d2' : '#a39aa8', size: 1 });
   }
   // предметы
   for (const it of G.items){
