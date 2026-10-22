@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>АмурМания — носи дух Амурской области</title>
+<meta name="description" content="АмурМания — одежда собственного производства из Благовещенска: оверсайз-футболки, ZIP-худи, мерч о Приамурье.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Общие градиенты для всех SVG-вещей -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="fold" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#000" stop-opacity=".28"/>
+      <stop offset=".18" stop-color="#000" stop-opacity=".05"/>
+      <stop offset=".45" stop-color="#fff" stop-opacity=".10"/>
+      <stop offset=".62" stop-color="#000" stop-opacity=".04"/>
+      <stop offset=".85" stop-color="#000" stop-opacity=".10"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".30"/>
+    </linearGradient>
+    <linearGradient id="drop" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#000" stop-opacity=".0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".16"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<header class="top">
+  <a href="#about" class="top__link">О нас</a>
+  <a href="#" class="logo" aria-label="АмурМания — на главную"><span>АМУР</span><span>МАНИЯ</span></a>
+  <button class="top__link cart-btn" type="button" id="cartBtn">Корзина (<span id="cartCount">0</span>)</button>
+</header>
+
+<main>
+  <!-- HERO: вешалка -->
+  <section class="rack" id="rack" aria-label="Коллекция на вешалке">
+    <div class="rack__rail" aria-hidden="true"><i></i><i></i></div>
+    <ul class="rack__items" id="rackItems"></ul>
+    <p class="rack__caption" id="rackCaption" aria-live="polite">Наведи на вещь · кликни, чтобы рассмотреть</p>
+    <a href="#catalog" class="pill">Смотреть всё <span aria-hidden="true">↗</span></a>
+  </section>
+
+  <!-- Каталог -->
+  <section class="section" id="catalog">
+    <div class="section__head">
+      <h2>Каталог</h2>
+      <div class="filters" id="filters" role="tablist">
+        <button class="chip is-on" data-f="all">Всё</button>
+        <button class="chip" data-f="tee">Футболки</button>
+        <button class="chip" data-f="zip">ZIP-худи</button>
+      </div>
+    </div>
+    <ul class="grid" id="grid"></ul>
+  </section>
+
+  <!-- Цифры и преимущества -->
+  <section class="section stats">
+    <div class="stat"><b data-count="8">8</b><span>лет занимаемся пошивом</span></div>
+    <div class="stat"><b data-count="100000" data-plus>100 000+</b><span>довольных клиентов</span></div>
+    <div class="stat"><b data-count="100" data-plus>100+</b><span>уникальных принтов</span></div>
+    <div class="stat"><b data-count="520" data-suffix=" м²">520 м²</b><span>производство и торговый зал</span></div>
+  </section>
+
+  <section class="section perks">
+    <article><h3>Собственное производство</h3><p>Шьём, печатаем DTF и упаковываем сами — контроль качества на каждом этапе.</p></article>
+    <article><h3>Уникальные дизайны</h3><p>Не шаблонные надписи: графика и символы Приамурья в современной подаче.</p></article>
+    <article><h3>Натуральные материалы</h3><p>Футер, хлопок, начёс — вещи, которые приятно трогать и хочется носить.</p></article>
+    <article><h3>Локализация</h3><p>Работаем с местными художниками и поддерживаем бизнес региона.</p></article>
+  </section>
+
+  <!-- О нас -->
+  <section class="section about" id="about">
+    <h2>Привет! Мы&nbsp;АмурМания</h2>
+    <p class="lead">Наша команда превращает идеи в вещи: придумываем, шьём, печатаем и упаковываем. Производство основано в 2018 году в Благовещенске. Хотелось, чтобы мерч с Дальнего Востока был не «сувениром на полку», а тем, что хочется носить и дарить.</p>
+    <div class="brands">
+      <article><h3>АмурМания</h3><p>Истории о Дальнем Востоке в современном дизайне: от графики и символов региона до смелых принтов и уютных форм.</p></article>
+      <article><h3>BITIM</h3><p>Городской характер и лаконичный стиль. Вещи, которые легко комбинировать и приятно носить каждый день.</p></article>
+    </div>
+    <h3 class="sub">Как мы можем быть полезны</h3>
+    <div class="services">
+      <article><span>01</span><h4>Корпоративный мерч</h4><p>Одежда для команд, партнёров и клиентов: от идеи и дизайна до упаковки и логистики.</p></article>
+      <article><span>02</span><h4>Производство для брендов</h4><p>Печать, пошив, контроль качества и подсорт для молодых и действующих марок.</p></article>
+      <article><span>03</span><h4>Индивидуальные заказы</h4><p>Подарочные капсулы, лимитки, коллаборации — аккуратно и вовремя.</p></article>
+    </div>
+  </section>
+
+  <!-- Контакты -->
+  <section class="section contacts" id="contacts">
+    <h2>Где нас найти</h2>
+    <div class="contacts__grid">
+      <div><span class="label">Точка продаж</span><p>Аэропорт Игнатьево, стерильная зона<br>ежедневно 05:00–17:00</p></div>
+      <div><span class="label">Производство</span><p>Благовещенск, ул. Загородная 117, 3 этаж<br>ежедневно 10:00–19:00</p></div>
+      <div><span class="label">Связь</span><p><a href="tel:+79140620001">+7 (914) 062-00-01</a><br><a href="https://t.me/amurmania" target="_blank" rel="noopener">Telegram @amurmania</a></p></div>
+    </div>
+  </section>
+  <footer class="foot">© АмурМания · Носи дух Амурской области</footer>
+</main>
+
+<!-- Детальный просмотр -->
+<div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="dName" hidden>
+  <button class="detail__back" id="dBack" type="button">← На вешалку</button>
+  <button class="arrow arrow--l" id="dPrev" type="button" aria-label="Предыдущая вещь">←</button>
+  <button class="arrow arrow--r" id="dNext" type="button" aria-label="Следующая вещь">→</button>
+  <div class="detail__stage">
+    <div class="detail__main" id="dMain"></div>
+    <ul class="detail__alts" id="dAlts" aria-label="Другие цвета"></ul>
+  </div>
+  <div class="detail__info">
+    <h1 id="dName"></h1>
+    <p class="detail__meta" id="dMeta"></p>
+    <div class="detail__row" id="dColors" aria-label="Цвет"></div>
+    <div class="detail__row" id="dSizes" aria-label="Размер"></div>
+    <div class="detail__row">
+      <span class="price" id="dPrice"></span>
+      <button class="pill pill--dark" id="dAdd" type="button">В корзину</button>
+    </div>
+  </div>
+</div>
+
+<div class="ticker" aria-hidden="true"><div class="ticker__track" id="ticker"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
