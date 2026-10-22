@@ -224,3 +224,15 @@ h1, h2, h3, h4 { font-family: var(--display); margin: 0; letter-spacing: -.01em;
   *, *::before, *::after { animation: none !important; transition: none !important; }
   html { scroll-behavior: auto; }
 }
+
+/* ---------- Реальные фото с amurmania.ru ---------- */
+.card__pic { display: block; aspect-ratio: 2 / 3; margin-bottom: 12px; border-radius: 12px; overflow: hidden; background: #fff; }
+.card__pic--svg { background: none; display: flex; align-items: center; }
+.card__pic img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s var(--ease); }
+.card:hover .card__pic img { transform: scale(1.05); }
+.detail__main.is-photo { aspect-ratio: 2 / 3; }
+.detail__main.is-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; box-shadow: 0 30px 50px -24px rgba(0,0,0,.35); }
+.detail__main.is-photo.enter { animation: photoIn .6s var(--ease); }
+@keyframes photoIn { from { opacity: 0; transform: translateY(14px) scale(.98); } }
+.detail__alts button.is-photo { margin-right: 6px; border-radius: 8px; overflow: hidden; }
+.detail__alts .thumb { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; }
