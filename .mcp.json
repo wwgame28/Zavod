@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "sh",
+      "args": ["scripts/playwright-mcp.sh"]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@4.4.4"],
+      "env": { "NODE_USE_ENV_PROXY": "1" }
+    },
+    "magicui": {
+      "command": "npx",
+      "args": ["-y", "@magicuidesign/mcp@2.0.0"],
+      "env": { "NODE_USE_ENV_PROXY": "1" }
+    }
+  }
+}
