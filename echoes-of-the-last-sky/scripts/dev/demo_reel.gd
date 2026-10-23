@@ -85,6 +85,14 @@ func _run() -> void:
 	hud = main.get("hud")
 	hud.set_cinematic(true)
 	player.input_enabled = false
+	var from := ""
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--reel-from="):
+			from = arg.substr(12)
+	if from == "bridge":
+		_play_mode()
+		await _bridge_and_close()
+		return
 
 	# 1. The Shattered Reach.
 	hud.toast("The Shattered Reach")
@@ -126,6 +134,10 @@ func _run() -> void:
 	player.move_override = Vector3.ZERO
 	await _orbit_to(tpc.yaw + 1.6, -0.05, 5.0)
 
+	await _bridge_and_close()
+
+
+func _bridge_and_close() -> void:
 	# 4. The broken bridge: a fall into the sea of clouds, and the winds carry her back.
 	hud.toast("The Broken Bridge")
 	var dir := MainIsland.BRIDGE_DIR.normalized()

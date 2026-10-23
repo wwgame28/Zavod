@@ -22,7 +22,7 @@ signal respawned
 @export var jump_height := 1.25
 @export var coyote_time := 0.12
 @export var jump_buffer_time := 0.13
-@export var step_height := 0.4
+@export var step_height := 0.5
 @export var kill_height := -140.0
 @export var input_enabled := true
 
@@ -243,9 +243,10 @@ func surface_effect(pos: Vector3) -> String:
 ## Lift over low ledges (tile edges, rubble) that stop the capsule while walking.
 func _try_step_up(pre: Vector3, delta: float) -> void:
 	var horizontal := Vector3(pre.x, 0.0, pre.z)
-	if horizontal.length() < 0.5:
+	if horizontal.length() < 0.3:
 		return
-	var motion := horizontal * delta
+	# Probe a little ahead even when the wall has stopped us, so we can climb out of pits.
+	var motion := horizontal.normalized() * maxf(horizontal.length() * delta, 0.2)
 	var start := global_transform
 	var up := Vector3.UP * step_height
 	if test_move(start, up):
@@ -256,10 +257,12 @@ func _try_step_up(pre: Vector3, delta: float) -> void:
 	var moved := raised.translated(motion)
 	var col := KinematicCollision3D.new()
 	if test_move(moved, Vector3.DOWN * (step_height + 0.05), col) and col.get_normal().y > cos(floor_max_angle):
-		global_position = moved.origin + col.get_travel()
-		velocity.x = pre.x
-		velocity.z = pre.z
-		apply_floor_snap()
+		var target := moved.origin + col.get_travel()
+		if target.y > global_position.y + 0.02:
+			global_position = target
+			velocity.x = pre.x
+			velocity.z = pre.z
+			apply_floor_snap()
 
 
 func _process(_delta: float) -> void:

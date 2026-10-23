@@ -153,6 +153,19 @@ func _test_player() -> void:
 		nearest = minf(nearest, Vector2(cp.x - spawn.x, cp.z - spawn.y).length())
 	_check(nearest > 7.0, "spawn area is clear of trees (nearest %.1f m)" % nearest)
 
+	# Broken bridge: missing deck tiles must not trap the hero; she runs off the far end.
+	var bdir := MainIsland.BRIDGE_DIR.normalized()
+	_player.teleport(MainIsland.BRIDGE_START + bdir * 28.0 + Vector3(0, 0.3, 0), atan2(bdir.x, bdir.z))
+	await _frames(10)
+	_player.move_override = bdir
+	var furthest := 0.0
+	for i in 240:
+		await get_tree().physics_frame
+		furthest = maxf(furthest, (_player.global_position - MainIsland.BRIDGE_START).dot(bdir))
+	_player.move_override = Vector3.ZERO
+	_check(furthest > 46.0, "crosses the bridge deck past its holes (reached %.1f m)" % furthest)
+	await _frames(200)
+
 	# Pond: the hero wades instead of sinking to the bottom.
 	var pond := MainIsland.POND_CENTER
 	_player.teleport(Vector3(pond.x, MainIsland.WATER_LEVEL + 1.5, pond.y))
