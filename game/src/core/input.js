@@ -87,7 +87,8 @@ export class Input {
   }
 
   pollGamepad() {
-    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let pads = [];
+    try { pads = navigator.getGamepads ? navigator.getGamepads() : []; } catch { pads = []; }
     const gp = pads && [...pads].find((p) => p && p.connected);
     if (!gp) { this.gpMove = null; this.gpLook = null; return; }
     const dz = (v) => (Math.abs(v) < 0.18 ? 0 : v);
