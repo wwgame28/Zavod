@@ -4,6 +4,7 @@ render_mode cull_back, diffuse_lambert, specular_disabled;
 
 #include "res://shaders/include/toon_lighting.gdshaderinc"
 #include "res://shaders/include/wind.gdshaderinc"
+#include "res://shaders/include/camera_fade.gdshaderinc"
 
 uniform sampler2D noise_tex : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform vec4 tint : source_color = vec4(1.0);
@@ -16,6 +17,9 @@ void vertex() {
 }
 
 void fragment() {
+	if (camera_faded(VERTEX, FRAGCOORD.xy)) {
+		discard;
+	}
 	float grain = texture(noise_tex, vec2(UV.x * 2.0, UV.y * 0.08)).r;
 	float grain2 = texture(noise_tex, vec2(UV.x * 5.0 + 0.3, UV.y * 0.2)).r;
 	ALBEDO = COLOR.rgb * tint.rgb * (0.78 + 0.3 * smoothstep(0.35, 0.7, grain * 0.7 + grain2 * 0.3));

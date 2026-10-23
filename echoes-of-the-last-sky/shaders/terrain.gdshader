@@ -55,7 +55,7 @@ void fragment() {
 	float path_edge = clamp(smoothstep(0.12, 0.4, pm) - path, 0.0, 1.0);
 	// Flower speckles so meadows still read as blooming fields beyond grass draw distance.
 	float speck = texture(noise_tex, world_pos.xz * 0.9).r;
-	float bloom = smoothstep(0.55, 0.8, COLOR.g) * step(0.74, speck) * (1.0 - path);
+	float bloom = smoothstep(0.55, 0.8, COLOR.g) * step(0.74, speck) * (1.0 - path) * smoothstep(30.0, 55.0, length(VERTEX));
 	vec3 petal = mix(flower_a.rgb, flower_b.rgb, step(0.5, fract(speck * 37.0)));
 	ground = mix(ground, petal, bloom * 0.75);
 	ground = mix(ground, path_edge_color.rgb, path_edge * 0.55);

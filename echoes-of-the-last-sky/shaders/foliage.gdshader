@@ -4,6 +4,7 @@ render_mode cull_back, diffuse_lambert, specular_disabled;
 
 #include "res://shaders/include/toon_lighting.gdshaderinc"
 #include "res://shaders/include/wind.gdshaderinc"
+#include "res://shaders/include/camera_fade.gdshaderinc"
 
 uniform sampler2D noise_tex : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform vec4 tint : source_color = vec4(1.0);
@@ -24,6 +25,9 @@ void vertex() {
 }
 
 void fragment() {
+	if (camera_faded(VERTEX, FRAGCOORD.xy)) {
+		discard;
+	}
 	vec3 p = world_pos * clump_scale;
 	float a = texture(noise_tex, p.xz + p.y * 0.37).r;
 	float b = texture(noise_tex, p.zy + vec2(0.5, 0.21)).r;

@@ -10,6 +10,7 @@ extends CanvasLayer
 @export var switch_label := ""
 
 var _help: PanelContainer
+var _help_text: Label
 var _toast: Label
 var _speed: Label
 var _toast_tween: Tween
@@ -58,6 +59,7 @@ func _ready() -> void:
 	_help.offset_bottom = -24
 	root.add_child(_help)
 	var help_text := Label.new()
+	_help_text = help_text
 	help_text.text = "Click — capture mouse   ·   Esc — release\nRMB hold — look   ·   WASD / arrows — move\nE / Space — up   ·   Q / Ctrl — down\nShift — fast   ·   Alt — slow   ·   Wheel — speed\n1–9 — viewpoints   ·   O — cinematic orbit\nF12 — screenshot   ·   H / F1 — hide help"
 	if switch_scene != "":
 		extra_help = ("Tab — %s" % switch_label) + ("\n" + extra_help if extra_help != "" else "")
@@ -115,6 +117,16 @@ func toast(text: String) -> void:
 
 func _on_speed(speed: float) -> void:
 	_speed.text = "fly speed %.0f m/s" % speed
+
+
+func set_help(text: String) -> void:
+	var lines := text.count("\n") + 1
+	_help_text.text = text
+	_help.offset_top = -48.0 - 22.0 * lines
+
+
+func set_speed_visible(v: bool) -> void:
+	_speed.visible = v
 
 
 func set_overlay_visible(v: bool) -> void:

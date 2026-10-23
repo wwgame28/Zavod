@@ -71,6 +71,10 @@ func jump_to(index: int, smooth: bool = true) -> void:
 	viewpoint_changed.emit(index, vp.label)
 
 
+func sync_angles() -> void:
+	_sync_angles()
+
+
 func _sync_angles() -> void:
 	var fwd := -global_transform.basis.z
 	_yaw = atan2(-fwd.x, -fwd.z)
@@ -87,6 +91,8 @@ func _transitioning() -> bool:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not current:
+		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
@@ -131,6 +137,8 @@ func _toggle_orbit() -> void:
 
 
 func _process(delta: float) -> void:
+	if not current:
+		return
 	if orbiting:
 		_orbit_angle += orbit_speed * delta
 		global_position = orbit_center + Vector3(cos(_orbit_angle) * _orbit_radius, _orbit_height - orbit_center.y, sin(_orbit_angle) * _orbit_radius)

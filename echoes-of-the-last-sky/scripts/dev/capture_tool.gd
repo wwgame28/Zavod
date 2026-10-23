@@ -28,8 +28,13 @@ func _ready() -> void:
 
 
 func _run(dir: String, frames: int, show_hud: bool, views: PackedInt32Array) -> void:
+	await get_tree().process_frame
 	var cam := get_node(camera_path) as FreeCamera
 	var hud := get_node_or_null(hud_path) as WorldHud
+	if get_parent().has_method("set_free_camera"):
+		get_parent().call("set_free_camera", true)
+	else:
+		cam.make_current()
 	if hud:
 		hud.set_overlay_visible(show_hud)
 	DirAccess.make_dir_recursive_absolute(dir)

@@ -17,6 +17,8 @@ const HERO_TREE := Vector2(26.0, -64.0)
 const POND_CENTER := Vector2(-112.0, -30.0)
 const WATER_LEVEL := 13.15
 const RUNE_CIRCLE := Vector2(38.0, 62.0)
+## Where the hero arrives: south meadow, facing the Grand Stair.
+const SPAWN := Vector2(-22.0, 98.0)
 const BRIDGE_START := Vector3(-58.0, 3.6, 92.0)
 const BRIDGE_DIR := Vector3(-0.55, 0.0, 0.835)
 const GRAND_STAIR := [Vector3(-24.0, 2.7, 82.0), Vector3(-24.0, 14.3, 38.0)]
@@ -32,6 +34,8 @@ func _build() -> void:
 	shape = make_shape()
 	_build_terrain()
 	grid = HeightGrid.bake(shape, 2.0)
+	_exclude(SPAWN, 8.0)
+	_exclude(SPAWN.lerp(Vector2(-24.0, 84.0), 0.5), 6.0)
 	_build_cliff_strata()
 	_build_temple()
 	_build_echo_core()
@@ -434,6 +438,17 @@ func _build_water() -> void:
 	kit.add_quad_facing(q0, q1, q2, q3, Vector3.UP)
 	var water := add_mesh(kit.commit(null, WorldPalette.WATER), Transform3D.IDENTITY, "Pond", false, group)
 	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Shallow wading floor so the hero stays knee-deep instead of walking along the pond bed.
+	var wade := StaticBody3D.new()
+	wade.name = "WadingFloor"
+	var wade_shape := CylinderShape3D.new()
+	wade_shape.radius = 13.0
+	wade_shape.height = 0.3
+	var wcs := CollisionShape3D.new()
+	wcs.shape = wade_shape
+	wcs.position = Vector3(POND_CENTER.x, WATER_LEVEL - 0.55 - 0.15, POND_CENTER.y)
+	wade.add_child(wcs)
+	group.add_child(wade)
 
 	# Waterfall: ballistic ribbon falling off the lip, widening as it drops.
 	var fall := MeshKit.new()
@@ -497,10 +512,10 @@ func _make_tree_variants() -> Array:
 	var greens := [WorldPalette.LEAF_GREEN, WorldPalette.LEAF_DEEP, WorldPalette.LEAF_LIME, WorldPalette.LEAF_GREEN, WorldPalette.LEAF_TEAL, WorldPalette.LEAF_DEEP]
 	for i in greens.size():
 		var h := rng.randf_range(7.5, 12.0)
-		v.append({"mesh": WorldPalette.tree_mesh(TreeFactory.broadleaf(rng, h, h * rng.randf_range(0.42, 0.52), greens[i], WorldPalette.BARK_BROWN, 2, rng.randi_range(3, 5))), "r": 5.0, "kind": "broadleaf"})
+		v.append({"mesh": WorldPalette.tree_mesh(TreeFactory.broadleaf(rng, h, h * rng.randf_range(0.42, 0.52), greens[i], WorldPalette.BARK_BROWN, 2, rng.randi_range(3, 5))), "r": 5.0, "kind": "broadleaf", "trunk": h * 0.065})
 	for i in 3:
 		var h := rng.randf_range(10.0, 15.0)
-		v.append({"mesh": WorldPalette.tree_mesh(TreeFactory.conifer(rng, h, h * 0.28, WorldPalette.LEAF_PINE, WorldPalette.BARK_BROWN, 4 + i % 2)), "r": 3.5, "kind": "conifer"})
+		v.append({"mesh": WorldPalette.tree_mesh(TreeFactory.conifer(rng, h, h * 0.28, WorldPalette.LEAF_PINE, WorldPalette.BARK_BROWN, 4 + i % 2)), "r": 3.5, "kind": "conifer", "trunk": h * 0.045})
 	return v
 
 
@@ -511,6 +526,9 @@ func _scatter_trees() -> void:
 		var col: Color = [WorldPalette.LEAF_GREEN, WorldPalette.LEAF_LIME, WorldPalette.LEAF_DEEP, WorldPalette.LEAF_TEAL][i]
 		bushes.append(WorldPalette.tree_mesh(TreeFactory.bush(rng, rng.randf_range(1.6, 2.4), col)))
 	var group := add_group("Trees")
+	var trunks := StaticBody3D.new()
+	trunks.name = "TreeCollision"
+	add_child(trunks)
 	# zone: [center, radius, count, allowed kinds]
 	var zones := [
 		[Vector2(76, 62), 24.0, 8, "broadleaf"],
@@ -543,6 +561,13 @@ func _scatter_trees() -> void:
 			var s := rng.randf_range(0.85, 1.2)
 			var y := grid.ground_min(p.x, p.y, 0.8) - 0.3
 			add_mesh(pick["mesh"], Transform3D(yaw_basis(rng.randf() * TAU, s), Vector3(p.x, y, p.y)), "", true, group)
+			var trunk_shape := CylinderShape3D.new()
+			trunk_shape.radius = float(pick["trunk"]) * s
+			trunk_shape.height = 3.2
+			var cs := CollisionShape3D.new()
+			cs.shape = trunk_shape
+			cs.position = Vector3(p.x, y + 1.6, p.y)
+			trunks.add_child(cs)
 			_tree_spots.append(Vector3(p.x, p.y, 6.5 * s))
 			placed += 1
 	# Bushes hug tree bases, ruins and cliff feet.
@@ -591,6 +616,12 @@ func _scatter_rocks() -> void:
 		var col := WorldPalette.ROCK_A.lerp(WorldPalette.ROCK_B, rng.randf())
 		variants.append(RockFactory.rock(rng, s, col, rng.randi_range(6, 9), 2).commit(null, WorldPalette.ROCK))
 	var group := add_group("Rocks")
+	var rock_shapes: Array[Shape3D] = []
+	for m in variants:
+		rock_shapes.append(m.create_convex_shape(true, true))
+	var rock_body := StaticBody3D.new()
+	rock_body.name = "RockCollision"
+	add_child(rock_body)
 	var placed := 0
 	var tries := 0
 	while placed < 70 and tries < 4000:
@@ -604,7 +635,13 @@ func _scatter_rocks() -> void:
 			continue
 		var s := rng.randf_range(0.6, 2.2)
 		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * s)
-		add_mesh(variants[rng.randi() % variants.size()], Transform3D(b, Vector3(p.x, grid.ground_min(p.x, p.y, s) - 0.35 * s, p.y)), "", true, group)
+		var vi := rng.randi() % variants.size()
+		var xf := Transform3D(b, Vector3(p.x, grid.ground_min(p.x, p.y, s) - 0.35 * s, p.y))
+		add_mesh(variants[vi], xf, "", true, group)
+		var rcs := CollisionShape3D.new()
+		rcs.shape = rock_shapes[vi]
+		rcs.transform = xf
+		rock_body.add_child(rcs)
 		placed += 1
 	# Pebbles as one multimesh per variant.
 	var pebble_mesh := RockFactory.rock(rng, Vector3(0.35, 0.22, 0.3), WorldPalette.ROCK_A, 6, 1).commit(null, WorldPalette.ROCK)
