@@ -1,0 +1,44 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/world/shattered_reach.tscn" id="1_world"]
+[ext_resource type="Script" path="res://scripts/camera/free_camera.gd" id="2_camera"]
+[ext_resource type="Material" path="res://materials/outline.tres" id="3_outline"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="4_hud"]
+[ext_resource type="Script" path="res://scripts/dev/capture_tool.gd" id="5_capture"]
+[ext_resource type="Script" path="res://scripts/dev/self_test.gd" id="6_selftest"]
+
+[sub_resource type="QuadMesh" id="QuadMesh_outline"]
+material = ExtResource("3_outline")
+size = Vector2(2, 2)
+
+[node name="Main" type="Node3D"]
+
+[node name="ShatteredReach" parent="." instance=ExtResource("1_world")]
+
+[node name="FreeCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, 26, 178)
+current = true
+fov = 62.0
+near = 0.15
+far = 9000.0
+script = ExtResource("2_camera")
+viewpoint_root = NodePath("../ShatteredReach/Viewpoints")
+
+[node name="OutlinePost" type="MeshInstance3D" parent="FreeCamera"]
+cast_shadow = 0
+extra_cull_margin = 16384.0
+mesh = SubResource("QuadMesh_outline")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("4_hud")
+camera_path = NodePath("../FreeCamera")
+
+[node name="CaptureTool" type="Node" parent="."]
+script = ExtResource("5_capture")
+camera_path = NodePath("../FreeCamera")
+hud_path = NodePath("../HUD")
+
+[node name="SelfTest" type="Node" parent="."]
+script = ExtResource("6_selftest")
+camera_path = NodePath("../FreeCamera")
+world_path = NodePath("../ShatteredReach")

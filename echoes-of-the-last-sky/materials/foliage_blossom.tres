@@ -1,0 +1,12 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://shaders/foliage.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://materials/textures/noise_soft.tres" id="2_noise"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/noise_tex = ExtResource("2_noise")
+shader_parameter/translucency_color = Color(1, 0.78, 0.86, 1)
+shader_parameter/translucency = 0.6
+shader_parameter/rim_color = Color(1, 0.9, 0.95, 1)
+shader_parameter/rim_strength = 0.45
