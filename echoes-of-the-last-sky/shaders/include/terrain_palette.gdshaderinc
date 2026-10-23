@@ -1,7 +1,8 @@
 // Ground palette shared by the terrain and the grass so blades blend into the soil they grow from.
-global uniform vec4 grass_color_dark;
-global uniform vec4 grass_color_mid;
-global uniform vec4 grass_color_light;
+// Plain uniforms (not global ones) so headless exports keep every material parameter.
+uniform vec4 grass_color_dark : source_color = vec4(0.15, 0.42, 0.3, 1.0);
+uniform vec4 grass_color_mid : source_color = vec4(0.35, 0.63, 0.24, 1.0);
+uniform vec4 grass_color_light : source_color = vec4(0.7, 0.8, 0.3, 1.0);
 
 vec3 grass_palette(sampler2D noise, vec2 xz, float meadow) {
 	float n1 = texture(noise, xz * 0.006).r;

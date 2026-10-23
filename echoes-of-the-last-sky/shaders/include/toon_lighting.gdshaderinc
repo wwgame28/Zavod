@@ -2,7 +2,7 @@
 // Key light: banded diffuse + crisp shadow edge + warm "terminator" band (anime cel look).
 // Local lights: soft wrapped falloff so crystal glows stay gentle.
 
-global uniform vec4 toon_terminator_tint;
+uniform vec4 toon_terminator_tint : source_color = vec4(1.0, 0.55, 0.35, 0.35);
 
 uniform float toon_band_center : hint_range(-1.0, 1.0) = 0.02;
 uniform float toon_band_softness : hint_range(0.001, 0.6) = 0.07;

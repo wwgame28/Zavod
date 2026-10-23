@@ -32,6 +32,8 @@ mesh = SubResource("QuadMesh_outline")
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("4_hud")
 camera_path = NodePath("../FreeCamera")
+switch_scene = "res://scenes/characters/hero_showcase.tscn"
+switch_label = "main character viewer"
 
 [node name="CaptureTool" type="Node" parent="."]
 script = ExtResource("5_capture")

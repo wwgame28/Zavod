@@ -1,5 +1,5 @@
-// Global wind shared by trees, grass and flowers. wind_params: xy = direction, z = sway (m), w = speed.
-global uniform vec4 wind_params;
+// Wind shared by trees, grass and flowers. wind_params: xy = direction, z = sway (m), w = speed.
+uniform vec4 wind_params = vec4(0.8, 0.45, 0.35, 0.9);
 
 vec3 wind_offset(vec3 world_pos, vec3 origin, float weight, float flutter) {
 	vec2 dir = normalize(wind_params.xy + vec2(1e-4));

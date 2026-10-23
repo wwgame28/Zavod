@@ -12,6 +12,8 @@ signal speed_changed(speed: float)
 @export var acceleration := 7.0
 @export var orbit_center := Vector3(0.0, 0.0, -10.0)
 @export var orbit_speed := 0.07
+@export var orbit_min_radius := 120.0
+@export var orbit_look_offset := 8.0
 @export var viewpoint_root: NodePath
 
 var speed_scale := 1.0
@@ -123,7 +125,7 @@ func _toggle_orbit() -> void:
 		if _tween:
 			_tween.kill()
 		var flat := Vector2(global_position.x - orbit_center.x, global_position.z - orbit_center.z)
-		_orbit_radius = clampf(flat.length(), 120.0, 900.0)
+		_orbit_radius = clampf(flat.length(), orbit_min_radius, 900.0)
 		_orbit_angle = atan2(flat.y, flat.x)
 		_orbit_height = global_position.y
 
@@ -132,7 +134,7 @@ func _process(delta: float) -> void:
 	if orbiting:
 		_orbit_angle += orbit_speed * delta
 		global_position = orbit_center + Vector3(cos(_orbit_angle) * _orbit_radius, _orbit_height - orbit_center.y, sin(_orbit_angle) * _orbit_radius)
-		look_at(orbit_center + Vector3(0.0, 8.0, 0.0), Vector3.UP)
+		look_at(orbit_center + Vector3(0.0, orbit_look_offset, 0.0), Vector3.UP)
 		_sync_angles()
 		return
 	if _transitioning():

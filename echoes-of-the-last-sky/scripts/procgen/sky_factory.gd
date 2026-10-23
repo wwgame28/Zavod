@@ -53,7 +53,7 @@ static func grass_clump(rng: RandomNumberGenerator, blades: int, height: float, 
 	var kit := MeshKit.new()
 	for b in blades:
 		var ang := rng.randf() * TAU
-		var base := Vector3(cos(ang), 0.0, sin(ang)) * rng.randf_range(0.0, 0.28)
+		var base := Vector3(cos(ang), 0.0, sin(ang)) * rng.randf_range(0.0, 0.22)
 		var face := rng.randf() * TAU
 		var side := Vector3(cos(face), 0.0, sin(face))
 		var lean := Vector3(-side.z, 0.0, side.x) * rng.randf_range(0.15, 0.45)

@@ -756,7 +756,7 @@ func _build_vegetation() -> void:
 	var group := add_group("Vegetation")
 	var clumps: Array[ArrayMesh] = []
 	for i in 3:
-		clumps.append(SkyFactory.grass_clump(rng, 7, rng.randf_range(0.65, 0.9), 0.12).commit(null, WorldPalette.GRASS))
+		clumps.append(SkyFactory.grass_clump(rng, 8, rng.randf_range(0.3, 0.42), 0.065).commit(null, WorldPalette.GRASS))
 	var flowers: Array[ArrayMesh] = []
 	for c in WorldPalette.FLOWER_COLORS:
 		var fk := MeshKit.new()
@@ -767,7 +767,7 @@ func _build_vegetation() -> void:
 	var chunk := 32.0
 	var grass_cells := {}
 	var flower_cells := {}
-	var spacing := 0.95
+	var spacing := 0.8
 	var noise := FastNoiseLite.new()
 	noise.seed = 5
 	noise.frequency = 0.03
@@ -804,9 +804,9 @@ func _build_vegetation() -> void:
 	var total := 0
 	for k in grass_cells:
 		total += grass_cells[k].size()
-		_add_multimesh(clumps[k.z], grass_cells[k], "Grass", group, false, 100.0)
+		_add_multimesh(clumps[k.z], grass_cells[k], "Grass", group, false, 80.0)
 	for k in flower_cells:
-		_add_multimesh(flowers[k.z], flower_cells[k], "Flowers", group, false, 90.0)
+		_add_multimesh(flowers[k.z], flower_cells[k], "Flowers", group, false, 70.0)
 	print("[ShatteredReach] grass clumps: %d" % total)
 
 

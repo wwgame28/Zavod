@@ -3,6 +3,11 @@ extends CanvasLayer
 ## Minimal exploration overlay: title, controls (H to toggle) and viewpoint toasts.
 
 @export var camera_path: NodePath
+@export var subtitle := "The Shattered Reach  ·  world preview"
+@export_multiline var extra_help := ""
+## Scene opened with Tab (world preview <-> character viewer).
+@export_file("*.tscn") var switch_scene := ""
+@export var switch_label := ""
 
 var _help: PanelContainer
 var _toast: Label
@@ -28,7 +33,7 @@ func _ready() -> void:
 	title.position = Vector2(28, 20)
 	root.add_child(title)
 	var sub := Label.new()
-	sub.text = "The Shattered Reach  ·  world preview"
+	sub.text = subtitle
 	sub.add_theme_font_size_override("font_size", 14)
 	sub.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
 	sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.5))
@@ -54,6 +59,11 @@ func _ready() -> void:
 	root.add_child(_help)
 	var help_text := Label.new()
 	help_text.text = "Click — capture mouse   ·   Esc — release\nRMB hold — look   ·   WASD / arrows — move\nE / Space — up   ·   Q / Ctrl — down\nShift — fast   ·   Alt — slow   ·   Wheel — speed\n1–9 — viewpoints   ·   O — cinematic orbit\nF12 — screenshot   ·   H / F1 — hide help"
+	if switch_scene != "":
+		extra_help = ("Tab — %s" % switch_label) + ("\n" + extra_help if extra_help != "" else "")
+	if extra_help != "":
+		help_text.text += "\n" + extra_help
+		_help.offset_top -= 22 * (extra_help.count("\n") + 1)
 	help_text.add_theme_font_size_override("font_size", 14)
 	help_text.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
 	help_text.add_theme_constant_override("line_spacing", 4)
@@ -90,7 +100,11 @@ func _ready() -> void:
 
 
 func _on_viewpoint(index: int, label: String) -> void:
-	_toast.text = "%d · %s" % [index + 1, label]
+	toast("%d · %s" % [index + 1, label])
+
+
+func toast(text: String) -> void:
+	_toast.text = text
 	if _toast_tween:
 		_toast_tween.kill()
 	_toast_tween = create_tween()
@@ -112,6 +126,11 @@ func set_overlay_visible(v: bool) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_help"):
 		_help.visible = not _help.visible
+	elif event.is_action_pressed("switch_scene") and switch_scene != "":
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		toast("Loading…")
+		await get_tree().process_frame
+		get_tree().change_scene_to_file(switch_scene)
 	elif event.is_action_pressed("take_screenshot"):
 		_save_screenshot()
 

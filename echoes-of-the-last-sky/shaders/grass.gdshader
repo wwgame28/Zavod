@@ -12,8 +12,8 @@ uniform bool use_vertex_color = false;
 uniform vec4 tip_color : source_color = vec4(0.93, 0.95, 0.6, 1.0);
 uniform float tip_mix = 0.3;
 uniform float root_darken = 0.14;
-uniform float fade_start = 55.0;
-uniform float fade_end = 85.0;
+uniform float fade_start = 42.0;
+uniform float fade_end = 68.0;
 uniform float flutter = 0.03;
 
 varying vec3 root_world;

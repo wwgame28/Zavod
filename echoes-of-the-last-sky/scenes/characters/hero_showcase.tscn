@@ -1,0 +1,106 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/world/shattered_reach.tscn" id="1_world"]
+[ext_resource type="PackedScene" path="res://scenes/characters/hero.tscn" id="2_hero"]
+[ext_resource type="Script" path="res://scripts/camera/free_camera.gd" id="3_camera"]
+[ext_resource type="Material" path="res://materials/outline.tres" id="4_outline"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="5_hud"]
+[ext_resource type="Script" path="res://scripts/camera/viewpoint.gd" id="6_viewpoint"]
+[ext_resource type="Script" path="res://scripts/dev/capture_tool.gd" id="7_capture"]
+[ext_resource type="Script" path="res://scripts/characters/hero_showcase.gd" id="8_showcase"]
+[ext_resource type="Script" path="res://scripts/dev/hero_self_test.gd" id="9_selftest"]
+
+[sub_resource type="QuadMesh" id="QuadMesh_outline"]
+material = ExtResource("4_outline")
+size = Vector2(2, 2)
+
+[node name="HeroShowcase" type="Node3D"]
+script = ExtResource("8_showcase")
+hero_path = NodePath("Hero")
+animator_path = NodePath("Hero/Animator")
+hud_path = NodePath("HUD")
+
+[node name="ShatteredReach" parent="." instance=ExtResource("1_world")]
+
+[node name="Hero" parent="." instance=ExtResource("2_hero")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52, 14, 22)
+
+[node name="Viewpoints" type="Node3D" parent="."]
+
+[node name="Front" type="Marker3D" parent="Viewpoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52, 15.05, 24.7)
+script = ExtResource("6_viewpoint")
+label = "Front"
+target = Vector3(-52, 14.9, 22)
+
+[node name="ThreeQuarter" type="Marker3D" parent="Viewpoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 15.25, 23.9)
+script = ExtResource("6_viewpoint")
+label = "Three-quarter"
+target = Vector3(-52, 14.95, 22)
+
+[node name="Profile" type="Marker3D" parent="Viewpoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49.25, 15, 22.05)
+script = ExtResource("6_viewpoint")
+label = "Profile"
+target = Vector3(-52, 14.9, 22)
+
+[node name="Back" type="Marker3D" parent="Viewpoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.3, 15.3, 19.3)
+script = ExtResource("6_viewpoint")
+label = "Back"
+target = Vector3(-52, 14.95, 22)
+
+[node name="Portrait" type="Marker3D" parent="Viewpoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.78, 15.56, 22.62)
+script = ExtResource("6_viewpoint")
+label = "Portrait"
+target = Vector3(-52, 15.52, 22)
+
+[node name="World" type="Marker3D" parent="Viewpoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.5, 17.2, 30.5)
+script = ExtResource("6_viewpoint")
+label = "In the World"
+target = Vector3(-52, 15.2, 22)
+
+[node name="PortraitSide" type="Marker3D" parent="Viewpoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.45, 15.53, 22.5)
+script = ExtResource("6_viewpoint")
+label = "Portrait three-quarter"
+target = Vector3(-52, 15.52, 22)
+
+[node name="FreeCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52, 15.05, 24.7)
+current = true
+fov = 50.0
+near = 0.05
+far = 9000.0
+script = ExtResource("3_camera")
+base_speed = 3.0
+orbit_center = Vector3(-52, 14, 22)
+orbit_speed = 0.35
+orbit_min_radius = 1.5
+orbit_look_offset = 0.95
+viewpoint_root = NodePath("../Viewpoints")
+
+[node name="OutlinePost" type="MeshInstance3D" parent="FreeCamera"]
+cast_shadow = 0
+extra_cull_margin = 16384.0
+mesh = SubResource("QuadMesh_outline")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("5_hud")
+camera_path = NodePath("../FreeCamera")
+subtitle = "Main character  ·  sky wanderer"
+extra_help = "P — cycle pose   ·   T — turntable"
+switch_scene = "res://scenes/main.tscn"
+switch_label = "back to the world preview"
+
+[node name="CaptureTool" type="Node" parent="."]
+script = ExtResource("7_capture")
+camera_path = NodePath("../FreeCamera")
+hud_path = NodePath("../HUD")
+
+[node name="HeroSelfTest" type="Node" parent="."]
+script = ExtResource("9_selftest")
+hero_path = NodePath("../Hero")
