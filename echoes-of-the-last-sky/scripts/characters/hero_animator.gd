@@ -5,6 +5,9 @@ extends Node
 ## It validates skinning now and keeps the hero alive until authored clips arrive.
 ## Imported rigs are left untouched (they play their own clips).
 
+## Foot contact during locomotion (side: 1 = left, -1 = right).
+signal footstep(side: float)
+
 enum Pose { A_POSE, IDLE, WALK_TEST, T_POSE }
 const POSE_NAMES := ["A-pose (rest)", "Idle", "Walk test", "T-pose"]
 
@@ -48,7 +51,13 @@ func _process(delta: float) -> void:
 	_time += delta
 	var run := smoothstep(2.6, 6.0, motion_speed)
 	var stride := lerpf(1.35, 2.3, run) + 0.4 * smoothstep(6.5, 8.6, motion_speed)
+	var before := _phase
 	_phase = fmod(_phase + delta * TAU * motion_speed / stride, TAU)
+	if grounded and _move > 0.5 and pose == Pose.IDLE:
+		for contact in [[PI * 0.5, 1.0], [PI * 1.5, -1.0]]:
+			var c: float = contact[0]
+			if (before < c and _phase >= c) or (before > _phase and (before < c or _phase >= c)):
+				footstep.emit(contact[1])
 	_landing = move_toward(_landing, 0.0, delta * 3.5)
 	_air = move_toward(_air, 0.0 if grounded else 1.0, delta * 8.0)
 	_move = move_toward(_move, smoothstep(0.15, 1.4, motion_speed) if grounded else 0.0, delta * 6.0)

@@ -26,6 +26,11 @@ signal respawned
 @export var kill_height := -140.0
 @export var input_enabled := true
 
+## Scripted control (cutscenes, demo reel, future AI): world-space move direction with
+## magnitude 0..1 used instead of player input while non-zero.
+var move_override := Vector3.ZERO
+var sprint_override := false
+
 @onready var visual: Node3D = $Visual
 @onready var hero: Hero = $Visual/Hero
 
@@ -42,6 +47,9 @@ var _safe_pos := Vector3.ZERO
 var _safe_time := 0.0
 var _lean := 0.0
 var _anim_player: AnimationPlayer
+var _streaks: Node3D
+var _island: MainIsland
+var _step_timer := 0.0
 
 
 func _ready() -> void:
@@ -54,6 +62,15 @@ func _ready() -> void:
 	facing_yaw = rotation.y
 	rotation = Vector3.ZERO
 	reset_motion_state()
+	_streaks = VfxLibrary.build("sprint_streaks")
+	add_child(_streaks)
+	_set_streaks(false)
+	jumped.connect(func(): _vfx("jump", global_position, 1.0))
+	landed.connect(_on_landed)
+	respawned.connect(func(): _vfx("respawn", global_position, 1.0))
+	var anim := hero.get_node_or_null("Animator") as HeroAnimator
+	if anim:
+		anim.footstep.connect(_on_footstep)
 
 
 ## Call after teleporting the body so interpolation and safe position restart from here.
@@ -64,6 +81,11 @@ func reset_motion_state() -> void:
 	_safe_pos = global_position
 	visual.global_position = global_position
 	visual.rotation = Vector3(0.0, facing_yaw, 0.0)
+
+
+## Queues a jump as if the jump button was pressed.
+func request_jump() -> void:
+	_buffer = jump_buffer_time
 
 
 func teleport(pos: Vector3, yaw: float = NAN) -> void:
@@ -87,11 +109,13 @@ func _physics_process(delta: float) -> void:
 	var forward := cam_basis * Vector3.FORWARD
 	var right := cam_basis * Vector3.RIGHT
 	var dir := forward * -input.y + right * input.x
+	if move_override != Vector3.ZERO:
+		dir = Vector3(move_override.x, 0.0, move_override.z)
 	var amount := minf(dir.length(), 1.0)
 	if amount > 0.0:
 		dir = dir / dir.length()
 	var top_speed := run_speed
-	if input_enabled and Input.is_action_pressed("sprint"):
+	if (input_enabled and Input.is_action_pressed("sprint")) or sprint_override:
 		top_speed = sprint_speed
 	elif input_enabled and Input.is_action_pressed("move_slow"):
 		top_speed = walk_speed
@@ -108,7 +132,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		_coyote -= delta
 		var g := gravity * (fall_gravity_scale if velocity.y < 0.0 else 1.0)
-		if velocity.y > 0.0 and not (input_enabled and Input.is_action_pressed("jump")):
+		if velocity.y > 0.0 and not (input_enabled and Input.is_action_pressed("jump")) and move_override == Vector3.ZERO:
 			g *= 2.2   # released early: shorter hop
 		velocity.y -= g * delta
 	if input_enabled and Input.is_action_just_pressed("jump"):
@@ -153,6 +177,67 @@ func _physics_process(delta: float) -> void:
 		respawned.emit()
 	_curr_pos = global_position
 	_drive_animation(floor_now)
+	_update_vfx(floor_now, delta)
+
+
+# --- Visual effects (logic only decides *when*; VfxLibrary decides *how it looks*) ---------------
+
+func _vfx(effect: String, pos: Vector3, intensity: float) -> void:
+	var director := get_node_or_null("/root/Vfx")
+	if director:
+		director.call("play", effect, pos, intensity, facing_yaw)
+
+
+func _set_streaks(on: bool) -> void:
+	for c in _streaks.get_children():
+		(c as GPUParticles3D).emitting = on
+
+
+func _update_vfx(on_floor: bool, delta: float) -> void:
+	var sprinting := on_floor and horizontal_speed > sprint_speed * 0.85
+	_set_streaks(sprinting)
+	if sprinting:
+		var back := -Vector3(velocity.x, 0.0, velocity.z).normalized()
+		for c in _streaks.get_children():
+			((c as GPUParticles3D).process_material as ParticleProcessMaterial).direction = back
+	# Imported models have no procedural gait: time footsteps from speed instead.
+	if not hero.is_procedural and on_floor and horizontal_speed > 1.0:
+		_step_timer -= delta * horizontal_speed / 1.1
+		if _step_timer <= 0.0:
+			_step_timer = 1.0
+			_on_footstep(1.0)
+
+
+func _on_landed(impact: float) -> void:
+	if impact > 0.15:
+		_vfx("land", global_position, 0.35 + impact)
+	elif impact > 0.05:
+		_on_footstep(1.0)
+
+
+func _on_footstep(side: float) -> void:
+	var foot := global_position + visual.global_transform.basis.x * (0.1 * side)
+	var effect := surface_effect(foot)
+	var intensity := 1.0 if horizontal_speed > run_speed * 0.8 else 0.6
+	_vfx(effect, foot + Vector3(0, 0.02, 0), intensity)
+
+
+## Which footstep effect suits the ground at `pos` (grass, path dust, stone, water).
+func surface_effect(pos: Vector3) -> String:
+	var hit := get_world_3d().direct_space_state.intersect_ray(
+			PhysicsRayQueryParameters3D.create(pos + Vector3(0, 0.6, 0), pos - Vector3(0, 0.8, 0), 1))
+	if hit.is_empty():
+		return "step_dust"
+	var body := hit.collider as Node
+	if body.name == "WadingFloor":
+		return "step_water"
+	if body.name == "TerrainCollision":
+		if _island == null:
+			_island = get_tree().get_first_node_in_group("main_island") as MainIsland
+		if _island and _island.grid and _island.grid.path(pos.x, pos.z) > 0.45:
+			return "step_dust"
+		return "step_grass"
+	return "step_stone"
 
 
 ## Lift over low ledges (tile edges, rubble) that stop the capsule while walking.

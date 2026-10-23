@@ -17,6 +17,10 @@ run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+Vfx="*res://scripts/vfx/vfx_director.gd"
+
 [editor]
 
 export/convert_text_resources_to_binary=false

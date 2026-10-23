@@ -125,6 +125,12 @@ func set_help(text: String) -> void:
 	_help.offset_top = -48.0 - 22.0 * lines
 
 
+## Cinematic mode: keep the title and toasts, hide controls and readouts.
+func set_cinematic(on: bool) -> void:
+	_help.visible = not on
+	_speed.visible = not on
+
+
 func set_speed_visible(v: bool) -> void:
 	_speed.visible = v
 

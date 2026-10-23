@@ -31,6 +31,7 @@ var _tree_spots: Array[Vector3] = []
 
 
 func _build() -> void:
+	add_to_group("main_island")
 	shape = make_shape()
 	_build_terrain()
 	grid = HeightGrid.bake(shape, 2.0)
@@ -275,6 +276,13 @@ func _build_echo_core() -> void:
 	var motes := FxFactory.motes(70, Vector3(9.0, 4.0, 9.0), Color(0.55, 1.0, 1.0), 0.18, 0.25)
 	motes.position = Vector3(0.0, -2.5, 0.0)
 	anchor.add_child(motes)
+	anchor.add_child(VfxLibrary.build("core_swirl"))
+	var pulse := VfxLibrary.build("core_pulse")
+	pulse.position = Vector3(0.0, -4.85, 0.0)
+	anchor.add_child(pulse)
+	var shafts := VfxLibrary.build("light_shafts")
+	shafts.position = Vector3(0.0, 1.5, 0.0)
+	anchor.add_child(shafts)
 
 
 func _spinner(parent: Node3D, speed: Vector3, bob: float = 0.0) -> Spinner:
@@ -334,6 +342,9 @@ func _build_rune_circle() -> void:
 	add_collision(mesh, Transform3D.IDENTITY, "RuneCircleCollision")
 	var crystals := CrystalFactory.cluster(rng, 5, 0.6, 0.6, 1.8, 0.5)
 	add_mesh(crystals.commit(null, WorldPalette.CRYSTAL), Transform3D(Basis(), Vector3(RUNE_CIRCLE.x, altar_y + 0.75, RUNE_CIRCLE.y)), "RuneCircleCrystal")
+	var glint := VfxLibrary.build("crystal_glint")
+	glint.position = Vector3(RUNE_CIRCLE.x, altar_y + 1.6, RUNE_CIRCLE.y)
+	add_child(glint)
 	_exclude(RUNE_CIRCLE, 13.0)
 
 
@@ -476,6 +487,13 @@ func _build_water() -> void:
 			prev_l = l
 			prev_r = r
 	add_mesh(fall.commit(null, WorldPalette.WATERFALL), Transform3D.IDENTITY, "Waterfall", false, group)
+	var splash := VfxLibrary.build("falls_splash")
+	splash.position = start + out * 1.2 + Vector3(0.0, -0.6, 0.0)
+	splash.rotation.y = atan2(out.x, out.z)
+	group.add_child(splash)
+	var ripples := VfxLibrary.build("pond_ripples")
+	ripples.position = Vector3(POND_CENTER.x, WATER_LEVEL + 0.02, POND_CENTER.y)
+	group.add_child(ripples)
 	var spray := FxFactory.mist(26, Vector3(2.5, 1.0, 2.5), 4.5, out * 1.5 + Vector3(0.0, -2.0, 0.0), 3.5, 0.45)
 	spray.position = start + out * 3.0 + Vector3(0.0, -3.0, 0.0)
 	group.add_child(spray)
@@ -693,6 +711,10 @@ func _build_underside() -> void:
 			light_spots.append(p + dir * 8.0)
 	add_mesh(crystals.commit(null, WorldPalette.CRYSTAL), Transform3D.IDENTITY, "UndersideCrystals", true, group)
 	for lp in light_spots:
+		var glint := VfxLibrary.build("crystal_glint")
+		glint.position = lp
+		glint.scale = Vector3.ONE * 4.0
+		group.add_child(glint)
 		var light := OmniLight3D.new()
 		light.position = lp
 		light.light_color = Color(0.45, 0.9, 1.0)
@@ -869,6 +891,12 @@ func _add_multimesh(mesh: Mesh, xforms: Array, node_name: String, parent: Node3D
 # --- Ambient effects ---------------------------------------------------------------------------
 
 func _build_ambient_fx() -> void:
+	var gust := VfxLibrary.build("leaf_gust")
+	gust.position = Vector3(10.0, 6.0, 55.0)
+	add_child(gust)
+	var gust2 := VfxLibrary.build("leaf_gust")
+	gust2.position = Vector3(-60.0, 18.0, -30.0)
+	add_child(gust2)
 	var pollen := FxFactory.motes(260, Vector3(120.0, 6.0, 60.0), Color(1.0, 0.93, 0.7), 0.12, 0.05, 12.0)
 	pollen.position = Vector3(10.0, 8.0, 60.0)
 	add_child(pollen)

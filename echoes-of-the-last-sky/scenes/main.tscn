@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/game_main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/world/shattered_reach.tscn" id="2_world"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/dev/capture_tool.gd" id="8_capture"]
 [ext_resource type="Script" path="res://scripts/dev/self_test.gd" id="9_selftest"]
 [ext_resource type="Script" path="res://scripts/dev/play_capture.gd" id="10_playcap"]
+[ext_resource type="Script" path="res://scripts/dev/demo_reel.gd" id="11_reel"]
 
 [sub_resource type="QuadMesh" id="QuadMesh_outline"]
 material = ExtResource("6_outline")
@@ -70,3 +71,6 @@ world_path = NodePath("../ShatteredReach")
 
 [node name="PlayCapture" type="Node" parent="."]
 script = ExtResource("10_playcap")
+
+[node name="DemoReel" type="Node" parent="."]
+script = ExtResource("11_reel")
